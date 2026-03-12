@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { type NavigateOptions } from "react-router";
 import { useLocationState } from "./useLocationState";
 import { useLocationIndex } from "./useLocationIndex";
@@ -11,9 +11,13 @@ type UseLocationToggleReturn = [
 const useLocationToggle = (
   key: string,
   indexKey?: string,
+  lazyClose = false,
 ): UseLocationToggleReturn => {
   /* Get location index from state */
   const index = useLocationIndex(indexKey);
+
+  /* State to handle lazy close */
+  const [isClosing, setIsClosing] = useState(false);
 
   /* Get toggle state from location state */
   const [show, setShow] = useLocationState(key, false);
@@ -23,12 +27,23 @@ const useLocationToggle = (
     (status: boolean, options?: NavigateOptions) => {
       if (status) {
         setShow(true, options);
+      } else if (lazyClose) {
+        setIsClosing(true);
       } else {
         setShow(undefined, options, index);
       }
     },
-    [index, setShow],
+    [index, lazyClose, setShow],
   );
+
+  /* Handle lazy close */
+  if (isClosing) {
+    if (show) {
+      setShow(undefined);
+    } else {
+      setIsClosing(false);
+    }
+  }
 
   return useMemo(() => [show, toggle], [show, toggle]);
 };
