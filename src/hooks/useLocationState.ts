@@ -12,6 +12,8 @@ const useLocationState = <T>(
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
   const location = useLocation();
+  const destroyKey = `__router_destroy__${key}`;
+  const destroyIndex = location.state?.[destroyKey];
   const valueFromState = location.state?.[key];
   const value = valueFromState !== undefined ? valueFromState : defaultValue;
 
@@ -38,8 +40,20 @@ const useLocationState = <T>(
       } else {
         /* If newValue is undefined, remove value from location state */
         if (index !== undefined) {
-          const delta = index - history.length;
-          navigate(delta - 1);
+          navigate(
+            {
+              pathname: location.pathname,
+              search: location.search,
+              hash: location.hash,
+            },
+            {
+              replace: true,
+              state: {
+                ...location.state,
+                [destroyKey]: index,
+              },
+            },
+          );
         } else if (location.key !== "default") {
           navigate(-1);
         } else {
@@ -47,8 +61,13 @@ const useLocationState = <T>(
         }
       }
     },
-    [key, navigate, location],
+    [key, navigate, location, destroyKey],
   );
+
+  if (destroyIndex !== undefined) {
+    const delta = destroyIndex - history.length;
+    navigate(delta - 1);
+  }
 
   return useMemo(() => [value, setValue], [value, setValue]);
 };
