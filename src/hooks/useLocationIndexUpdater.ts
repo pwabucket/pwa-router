@@ -5,7 +5,7 @@ import { useLayoutEffect } from "react";
 const useLocationIndexUpdater = (key: string) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const stateKey = `__index_${key}`;
+  const stateKey = `__router_index_${key}`;
   const index: number | undefined = location.state?.[stateKey];
 
   /* Ensure location has an index */
