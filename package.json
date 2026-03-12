@@ -28,6 +28,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "prepublish": "rm -rf ./dist && npm run build",
     "dev": "vite",
