@@ -33,6 +33,9 @@ setValue("new value");
 
 // Clear value (navigates back)
 setValue(undefined);
+
+// Clear value and navigate back to a specific history index
+setValue(undefined, {}, historyIndex);
 ```
 
 **Parameters:**
@@ -41,15 +44,18 @@ setValue(undefined);
 | --- | --- | --- |
 | `key` | `string` | State key in `location.state` |
 | `defaultValue` | `T` | Fallback when the key is not present |
-| `indexKey` | `string?` | Optional key for index tracking (see `useLocationIndex`) |
 
-**Returns:** `[T, (value?: T, options?: NavigateOptions) => void]`
+**Returns:** `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
+
+- When `value` is provided, navigates to the current location with the new state value.
+- When `value` is `undefined` and `index` is provided, calculates a history delta and navigates back to that entry.
+- When `value` is `undefined` and no `index`, navigates back one entry (or to `"/"` if there is no prior history).
 
 ---
 
 ### `useLocationToggle`
 
-A convenience wrapper around `useLocationState` for boolean toggle patterns (e.g. modals, drawers, sheets).
+A convenience wrapper around `useLocationState` for boolean toggle patterns (e.g. modals, drawers, sheets). Internally uses `useLocationIndex` to navigate back to the correct history entry when closing.
 
 ```tsx
 import { useLocationToggle } from "@pwabucket/pwa-router";
@@ -68,7 +74,7 @@ toggle(false);
 | Param | Type | Description |
 | --- | --- | --- |
 | `key` | `string` | State key in `location.state` |
-| `indexKey` | `string?` | Optional key for index tracking |
+| `indexKey` | `string?` | Optional key for index tracking (see `useLocationIndex`) |
 
 **Returns:** `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 
@@ -76,12 +82,12 @@ toggle(false);
 
 ### `useLocationIndex`
 
-Reads the saved history index for a given key from `location.state`. Used internally by `useLocationState` to navigate back to the correct entry.
+Reads the saved history index for a given key from `location.state`. The index is stored under the key `__router_index_<key>`. Used internally by `useLocationToggle` to navigate back to the correct entry.
 
 ```tsx
 import { useLocationIndex } from "@pwabucket/pwa-router";
 
-const index = useLocationIndex("myKey");
+const index = useLocationIndex("modal");
 ```
 
 **Parameters:**
@@ -96,7 +102,7 @@ const index = useLocationIndex("myKey");
 
 ### `useLocationIndexUpdater`
 
-Stamps the current `history.length` onto `location.state` so that `useLocationState` can navigate back to the correct entry when clearing a value. Call this in a layout or page component that serves as a "base" for toggled UI.
+Stamps the current `history.length` onto `location.state` (under `__router_index_<key>`) so that `useLocationToggle` can navigate back to the correct entry when closing. Call this in a layout or page component that serves as a "base" for toggled UI.
 
 ```tsx
 import { useLocationIndexUpdater } from "@pwabucket/pwa-router";
@@ -141,7 +147,7 @@ function Header() {
 
 The following types are also exported for convenience:
 
-- **`UseLocationStateReturn<T>`** — `[T, (value?: T, options?: NavigateOptions) => void]`
+- **`UseLocationStateReturn<T>`** — `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 - **`UseLocationToggleReturn`** — `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 
 ## License
