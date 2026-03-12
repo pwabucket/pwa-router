@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { type NavigateOptions } from "react-router";
 import { useLocationState } from "./useLocationState";
+import { useLocationIndex } from "./useLocationIndex";
 
 type UseLocationToggleReturn = [
   boolean,
@@ -11,7 +12,11 @@ const useLocationToggle = (
   key: string,
   indexKey?: string,
 ): UseLocationToggleReturn => {
-  const [show, setShow] = useLocationState(key, false, indexKey);
+  /* Get location index from state */
+  const index = useLocationIndex(indexKey);
+
+  /* Get toggle state from location state */
+  const [show, setShow] = useLocationState(key, false);
 
   /** Toggle Location */
   const toggle = useCallback(
@@ -19,10 +24,10 @@ const useLocationToggle = (
       if (status) {
         setShow(true, options);
       } else {
-        setShow(undefined, options);
+        setShow(undefined, options, index);
       }
     },
-    [setShow],
+    [index, setShow],
   );
 
   return useMemo(() => [show, toggle], [show, toggle]);

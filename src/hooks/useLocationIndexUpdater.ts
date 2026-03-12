@@ -1,19 +1,19 @@
-import { useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
+
+import { useLayoutEffect } from "react";
 
 const useLocationIndexUpdater = (key: string) => {
   const navigate = useNavigate();
   const location = useLocation();
   const stateKey = `__router_index_${key}`;
-  const ref = useRef(history.length);
   const index: number | undefined = location.state?.[stateKey];
 
   /* Ensure location has an index */
   useLayoutEffect(() => {
-    if (ref.current !== index) {
+    if (typeof index === "undefined") {
       navigate(location, {
         replace: true,
-        state: { ...location.state, [stateKey]: ref.current },
+        state: { ...location.state, [stateKey]: history.length },
       });
     }
   }, [index, stateKey, location, navigate]);

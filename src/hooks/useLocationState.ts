@@ -1,30 +1,24 @@
 import { useCallback, useMemo } from "react";
 import { useLocation, useNavigate, type NavigateOptions } from "react-router";
-import { useLocationIndex } from "./useLocationIndex";
 
 type UseLocationStateReturn<T> = [
   T,
-  (value?: T, options?: NavigateOptions) => void,
+  (value?: T, options?: NavigateOptions, index?: number) => void,
 ];
 
 const useLocationState = <T>(
   key: string,
   defaultValue: T,
-  indexKey?: string,
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
   const location = useLocation();
   const valueFromState = location.state?.[key];
-  const value =
-    typeof valueFromState !== "undefined" ? valueFromState : defaultValue;
-
-  /* Get location index from state */
-  const index = useLocationIndex(indexKey);
+  const value = valueFromState !== undefined ? valueFromState : defaultValue;
 
   /** Set value */
   const setValue = useCallback(
-    (newValue?: T, options?: NavigateOptions) => {
-      if (typeof newValue !== "undefined") {
+    (newValue?: T, options?: NavigateOptions, index?: number) => {
+      if (newValue !== undefined) {
         navigate(location, {
           ...options,
           state: {
@@ -43,7 +37,7 @@ const useLocationState = <T>(
         }
       }
     },
-    [key, index, navigate, location],
+    [key, navigate, location],
   );
 
   return useMemo(() => [value, setValue], [value, setValue]);
