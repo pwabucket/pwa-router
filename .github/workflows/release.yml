@@ -34,9 +34,7 @@ jobs:
             - name: Publish to npm
               run: pnpm publish --access public --no-git-checks
 
-            - name: Publish GitHub Release
-              uses: release-drafter/release-drafter@v6
-              with:
-                  publish: true
+            - name: Generate release notes and publish GitHub Release
+              run: gh release create "${{ github.ref_name }}" --generate-notes
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
