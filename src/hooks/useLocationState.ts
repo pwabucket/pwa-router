@@ -12,10 +12,8 @@ const useLocationState = <T>(
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
   const location = useLocation();
-  const destroyKey = `__router_destroy__${key}`;
-  const destroyIndex = location.state?.[destroyKey];
   const valueFromState = location.state?.[key];
-  const value = valueFromState !== undefined ? valueFromState : defaultValue;
+  const value: T = valueFromState !== undefined ? valueFromState : defaultValue;
 
   /** Set value */
   const setValue = useCallback(
@@ -40,20 +38,27 @@ const useLocationState = <T>(
       } else {
         /* If newValue is undefined, remove value from location state */
         if (index !== undefined) {
-          navigate(
-            {
-              pathname: location.pathname,
-              search: location.search,
-              hash: location.hash,
-            },
-            {
-              replace: true,
-              state: {
-                ...location.state,
-                [destroyKey]: index,
+          if (index < history.length) {
+            navigate(
+              {
+                pathname: location.pathname,
+                search: location.search,
+                hash: location.hash,
               },
-            },
-          );
+              {
+                ...options,
+                replace: true,
+                state: {
+                  ...location.state,
+                  ...options?.state,
+                  [key]: undefined,
+                  __router_destroy_index: index,
+                },
+              },
+            );
+          } else {
+            navigate(-1);
+          }
         } else if (location.key !== "default") {
           navigate(-1);
         } else {
@@ -61,13 +66,8 @@ const useLocationState = <T>(
         }
       }
     },
-    [key, navigate, location, destroyKey],
+    [key, navigate, location],
   );
-
-  if (destroyIndex !== undefined) {
-    const delta = destroyIndex - history.length;
-    navigate(delta - 1);
-  }
 
   return useMemo(() => [value, setValue], [value, setValue]);
 };

@@ -17,7 +17,40 @@ pnpm add @pwabucket/pwa-router
 - `react` ^18 || ^19
 - `react-router` ^7
 
+## Setup
+
+Wrap your application with `PWARoutingProvider` inside a React Router context. The provider manages internal history tracking needed by the routing hooks.
+
+```tsx
+import { BrowserRouter } from "react-router";
+import { PWARoutingProvider } from "@pwabucket/pwa-router";
+
+function App() {
+  return (
+    <BrowserRouter>
+      <PWARoutingProvider>
+        {/* your routes */}
+      </PWARoutingProvider>
+    </BrowserRouter>
+  );
+}
+```
+
 ## Hooks
+
+### `usePWARouting`
+
+Access the `PWARoutingContext` value, which exposes the resolved location.
+
+```tsx
+import { usePWARouting } from "@pwabucket/pwa-router";
+
+const { resolvedLocation } = usePWARouting();
+```
+
+**Returns:** `PWARoutingContextValue` — `{ resolvedLocation: Location }`
+
+---
 
 ### `useLocationState`
 
@@ -145,8 +178,9 @@ function Header() {
 
 ## Types
 
-The following types are also exported for convenience:
+The following types are exported for convenience:
 
+- **`PWARoutingContextValue`** — `{ resolvedLocation: Location }`
 - **`UseLocationStateReturn<T>`** — `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 - **`UseLocationToggleReturn`** — `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 

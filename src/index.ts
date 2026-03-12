@@ -1,3 +1,8 @@
+export type { PWARoutingContextValue } from "./contexts/PWARoutingContext";
+
+export { PWARoutingProvider } from "./providers/PWARoutingProvider";
+export { usePWARouting } from "./hooks/usePWARouting";
+
 export { useLocationIndex } from "./hooks/useLocationIndex";
 export { useLocationIndexUpdater } from "./hooks/useLocationIndexUpdater";
 
