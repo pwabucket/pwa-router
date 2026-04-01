@@ -1,12 +1,14 @@
 import { useLayoutEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router";
+
+import { useNavigate } from "react-router";
+import { usePWARouting } from "./usePWARouting";
 
 const useLocationIndexUpdater = (key: string) => {
   /* Create a unique key for storing index in location state */
   const stateKey = `__router_index_${key}`;
 
   /* Get location and index from location state */
-  const location = useLocation();
+  const { resolvedLocation: location } = usePWARouting();
   const index: number | undefined = location.state?.[stateKey];
 
   /* Ref to track initial history length */
@@ -38,6 +40,7 @@ const useLocationIndexUpdater = (key: string) => {
         hash: location.hash,
       },
       {
+        flushSync: true,
         replace: true,
         state: { ...location.state, [stateKey]: historyRef.current },
       },

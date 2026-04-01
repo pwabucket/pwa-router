@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from "react";
-import { useLocation, useNavigate, type NavigateOptions } from "react-router";
+import { useCallback, useMemo, useRef } from "react";
+import { useNavigate, type NavigateOptions } from "react-router";
+import { usePWARouting } from "./usePWARouting";
 
 type UseLocationStateReturn<T> = [
   T,
@@ -11,13 +12,24 @@ const useLocationState = <T>(
   defaultValue: T,
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { resolvedLocation: location } = usePWARouting();
+  const ref = useRef({
+    navigate,
+    location,
+  });
+
+  // eslint-disable-next-line
+  ref.current.location = location;
+  // eslint-disable-next-line
+  ref.current.navigate = navigate;
+
   const valueFromState = location.state?.[key];
   const value: T = valueFromState !== undefined ? valueFromState : defaultValue;
 
   /** Set value */
   const setValue = useCallback(
     (newValue?: T, options?: NavigateOptions, index?: number) => {
+      const { navigate, location } = ref.current;
       /* If newValue is defined, update location state with new value */
       if (newValue !== undefined) {
         navigate(
@@ -66,7 +78,7 @@ const useLocationState = <T>(
         }
       }
     },
-    [key, navigate, location],
+    [key],
   );
 
   return useMemo(() => [value, setValue], [value, setValue]);
