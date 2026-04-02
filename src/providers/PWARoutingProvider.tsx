@@ -7,7 +7,7 @@ import {
 } from "react-router";
 
 import { PWARoutingContext } from "../contexts/PWARoutingContext";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   ROUTER_DESTROY_INDEX,
   ROUTER_FROM_POSITION,
@@ -18,6 +18,9 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
+
+  const isFinalizingRef = useRef(false);
+  const lastLocationKeyRef = useRef(location.key);
 
   const [tempLocation, setTempLocation] = useState<Location | null>(null);
   const [tempRouterOptions, setTempRouterOptions] =
@@ -32,6 +35,13 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
   const resolvedLocation = tempLocation || location;
 
   useLayoutEffect(() => {
+    if (location.key !== lastLocationKeyRef.current) {
+      isFinalizingRef.current = false;
+      lastLocationKeyRef.current = location.key;
+    }
+
+    if (isFinalizingRef.current) return;
+
     /**
      * If we want to navigate from a particular position, we store the current location temporarily
      * then navigate back to that position first before we update the history.
@@ -39,6 +49,9 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
      * E.g Mobile sidebars that needs to replace the location
      */
     if (fromPosition !== undefined) {
+      /** Mark finalization */
+      isFinalizingRef.current = true;
+
       const newLocation: Location = {
         ...location,
         state: {
@@ -56,17 +69,21 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
 
       /** Go back to the position */
       navigate(fromPosition);
+
       return;
     }
 
     /**
-     * Assuming we have a modal with an iframe inside, closing the modal by navigating back won't work if the iframe
-     * has made additional navigation, so we need to navigate forward to reset the history pointer, then pick it up
-     * with ROUTER_NAVIGATE_INDEX.
+     * Assuming we have a modal with an iframe inside, closing the modal by navigating back
+     * won't work if the iframe has made additional navigation,
+     * so we need to navigate forward to reset the history pointer,
+     * then pick it up with ROUTER_NAVIGATE_INDEX.
      *
      * This can be used even for layouts that has made nested navigation.
      */
     if (destroyIndex !== undefined) {
+      /** Mark finalization */
+      isFinalizingRef.current = true;
       navigate(
         {
           pathname: location.pathname,
@@ -87,19 +104,25 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
 
     /**
      * If navigateIndex is defined, navigate to the corresponding index in the history stack,
-     * swiping / pressing back should work as expected since we've reset the pointer through ROUTER_DESTROY_INDEX
+     * swiping / pressing back should work as expected since
+     * we've reset the pointer through ROUTER_DESTROY_INDEX
      */
     if (navigateIndex !== undefined) {
+      /** Mark finalization */
+      isFinalizingRef.current = true;
       const delta = navigateIndex - window.history.length - 1;
       navigate(delta);
       return;
     }
 
     /**
-     * Here we update the history with exactly what we have in tempLocation once we've navigated to the
-     * specified position
+     * Here we update the history with exactly what we have in tempLocation
+     * once we've navigated to the specified position
      */
     if (tempLocation) {
+      /** Mark finalization */
+      isFinalizingRef.current = true;
+
       setTempLocation(null);
       setTempRouterOptions(null);
 
