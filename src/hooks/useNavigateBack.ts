@@ -5,14 +5,13 @@ import { usePWARouting } from "./usePWARouting";
 const useNavigateBack = (root = "/") => {
   const navigate = useNavigate();
   const { resolvedLocation: location } = usePWARouting();
+  const key = location.key;
 
   const navigateBack = useCallback(
     (options?: NavigateOptions) => {
-      return location.key !== "default"
-        ? navigate(-1)
-        : navigate(root, options);
+      return key !== "default" ? navigate(-1) : navigate(root, options);
     },
-    [location, navigate, root],
+    [key, navigate, root],
   );
 
   return navigateBack;
