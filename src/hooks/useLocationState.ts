@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useNavigate, type NavigateOptions } from "react-router";
 import { usePWARouting } from "./usePWARouting";
-import { ROUTER_DESTROY_INDEX } from "../constants";
+import { routerState } from "../constants";
 
 type UseLocationStateReturn<T> = [
   T,
@@ -64,8 +64,8 @@ const useLocationState = <T>(
                 state: {
                   ...location.state,
                   ...options?.state,
+                  ...routerState.destroy(index),
                   [key]: undefined,
-                  [ROUTER_DESTROY_INDEX]: index,
                 },
               },
             );
