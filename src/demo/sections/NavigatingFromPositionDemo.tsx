@@ -1,11 +1,12 @@
-import { Link, useLocation, useNavigate } from "react-router";
+import { Link, useLocation } from "react-router";
 
-import { ROUTER_FROM_POSITION } from "../../constants";
+import { fromPosition } from "../../constants";
+import { useNavigateBack } from "../../hooks/useNavigateBack";
 import { useState } from "react";
 
 const NavigatingFromPositionDemo = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigateBack = useNavigateBack();
   const [position, setPosition] = useState<number | undefined>(-1);
 
   return (
@@ -38,13 +39,7 @@ const NavigatingFromPositionDemo = () => {
       <br />
 
       {/* Go to /posts */}
-      <Link
-        replace
-        to="/posts"
-        state={{
-          [ROUTER_FROM_POSITION]: position,
-        }}
-      >
+      <Link replace to="/posts" state={fromPosition(position)}>
         Go to /posts
       </Link>
       <br />
@@ -54,13 +49,7 @@ const NavigatingFromPositionDemo = () => {
       <br />
 
       {/* Go to /users */}
-      <Link
-        replace
-        to="/users"
-        state={{
-          [ROUTER_FROM_POSITION]: position,
-        }}
-      >
+      <Link replace to="/users" state={fromPosition(position)}>
         Go to /users
       </Link>
 
@@ -68,7 +57,7 @@ const NavigatingFromPositionDemo = () => {
       <br />
 
       {/* Go to back */}
-      <button onClick={() => navigate(-1)}>Go back</button>
+      <button onClick={() => navigateBack()}>Go back</button>
     </>
   );
 };
