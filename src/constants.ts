@@ -13,15 +13,15 @@ export const ROUTER_INDEX_PREFIX = "__router_index_";
 /**
  * Single-flag helpers (quick use)
  */
-export const fromPosition = (value: number) => ({
+export const fromPosition = (value?: number) => ({
   [ROUTER_FROM_POSITION]: value,
 });
 
-export const destroyIndex = (value: number) => ({
+export const destroyIndex = (value?: number) => ({
   [ROUTER_DESTROY_INDEX]: value,
 });
 
-export const navigateIndex = (value: number) => ({
+export const navigateIndex = (value?: number) => ({
   [ROUTER_NAVIGATE_INDEX]: value,
 });
 
