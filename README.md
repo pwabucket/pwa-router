@@ -22,16 +22,34 @@ pnpm add @pwabucket/pwa-router
 Wrap your application with `PWARoutingProvider` inside a React Router context. The provider manages internal history tracking needed by the routing hooks.
 
 ```tsx
+// main.tsx
+import App from "./App.tsx";
 import { BrowserRouter } from "react-router";
 import { PWARoutingProvider } from "@pwabucket/pwa-router";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
-function App() {
-  return (
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
     <BrowserRouter>
       <PWARoutingProvider>
-        {/* your routes */}
+        <App />
       </PWARoutingProvider>
     </BrowserRouter>
+  </StrictMode>,
+);
+
+// App.tsx
+import { usePWARouting } from "@pwabucket/pwa-router";
+import { Routes, Route } from "react-router";
+
+function App() {
+  const { resolvedLocation } = usePWARouting();
+  
+  return (
+    <Routes location={resolvedLocation}>
+        {/* your routes */}
+    </Routes>
   );
 }
 ```
