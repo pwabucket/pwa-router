@@ -1,11 +1,12 @@
 import { useLayoutEffect, useRef } from "react";
 
+import { ROUTER_INDEX_PREFIX } from "../constants";
 import { useNavigate } from "react-router";
 import { usePWARouting } from "./usePWARouting";
 
 const useLocationIndexUpdater = (key: string) => {
   /* Create a unique key for storing index in location state */
-  const stateKey = `__router_index_${key}`;
+  const stateKey = ROUTER_INDEX_PREFIX + key;
 
   /* Get location and index from location state */
   const { resolvedLocation: location } = usePWARouting();
