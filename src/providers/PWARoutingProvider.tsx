@@ -12,6 +12,7 @@ import {
   ROUTER_DESTROY_INDEX,
   ROUTER_FROM_POSITION,
   ROUTER_NAVIGATE_INDEX,
+  routerState,
 } from "../constants";
 
 const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
@@ -56,7 +57,7 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
         ...location,
         state: {
           ...location.state,
-          [ROUTER_FROM_POSITION]: undefined,
+          ...routerState.from(undefined),
         },
       };
 
@@ -94,8 +95,8 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
           flushSync: true,
           state: {
             ...location.state,
-            [ROUTER_DESTROY_INDEX]: undefined,
-            [ROUTER_NAVIGATE_INDEX]: destroyIndex,
+            ...routerState.destroy(undefined),
+            ...routerState.navigate(destroyIndex),
           },
         },
       );
