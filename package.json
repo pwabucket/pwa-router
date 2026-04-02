@@ -1,7 +1,7 @@
 {
   "name": "@pwabucket/pwa-router",
   "description": "Hooks and utilities for client-side routing in React applications, designed for Progressive Web Apps (PWAs).",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "type": "module",
   "keywords": [
     "react",
