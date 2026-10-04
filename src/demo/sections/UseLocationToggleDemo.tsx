@@ -34,8 +34,8 @@ const UseLocationToggleDemo = () => {
   const [sheetOpened, setSheetOpened] = useLocationToggle("sheet", "sheet", {
     persist: false,
   });
-  const [localOpened, setLocalOpened] = useLocationToggle(
-    "local-panel",
+  const [nonInheritedOpened, setNonInheritedOpened] = useLocationToggle(
+    "non-inherited-panel",
     undefined,
     { inherit: false },
   );
@@ -55,8 +55,8 @@ const UseLocationToggleDemo = () => {
         Indexed sheet is: {sheetOpened ? "opened" : "closed"}
       </button>
 
-      <button onClick={() => setLocalOpened(!localOpened)}>
-        Non-inherited panel is: {localOpened ? "opened" : "closed"}
+      <button onClick={() => setNonInheritedOpened(!nonInheritedOpened)}>
+        Non-inherited panel is: {nonInheritedOpened ? "opened" : "closed"}
       </button>
 
       {sheetOpened && <Sheet onClose={() => setSheetOpened(false)} />}

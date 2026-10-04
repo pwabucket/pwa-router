@@ -5,11 +5,11 @@ import { routerState } from "../constants";
 import { getLocationPath } from "../utils/location";
 import { markEphemeral, unmarkEphemeral } from "../utils/ephemeralState";
 import {
-  markLocal,
-  readLocalKeys,
-  removeLocalValues,
-  unmarkLocal,
-} from "../utils/localState";
+  markNonInherited,
+  readNonInheritedKeys,
+  removeNonInheritedValues,
+  unmarkNonInherited,
+} from "../utils/nonInheritedState";
 
 type UseLocationStateReturn<T> = [
   T,
@@ -49,22 +49,25 @@ const useLocationState = <T>(
     (newValue: T, options?: NavigateOptions) => {
       const { navigate, location } = latestRef.current;
 
-      /* Local entries are replaced by the next push */
-      const hasLocalValues = readLocalKeys(location.state).length > 0;
+      /* Entries holding non-inherited values are replaced by the next push */
+      const isNonInheritedEntry =
+        readNonInheritedKeys(location.state).length > 0;
 
-      /* Local values stay on the entry that set them */
-      const baseState = removeLocalValues(location.state);
+      /* Non-inherited values stay on the entry that set them */
+      const inheritedState = removeNonInheritedValues(location.state);
 
       navigate(getLocationPath(location), {
-        replace: hasLocalValues,
+        replace: isNonInheritedEntry,
         ...options,
         state: {
-          ...baseState,
+          ...inheritedState,
           ...options?.state,
           ...(persist
-            ? unmarkEphemeral(baseState, key)
-            : markEphemeral(baseState, key, indexKey ?? null)),
-          ...(inherit ? unmarkLocal(baseState, key) : markLocal(baseState, key)),
+            ? unmarkEphemeral(inheritedState, key)
+            : markEphemeral(inheritedState, key, indexKey ?? null)),
+          ...(inherit
+            ? unmarkNonInherited(inheritedState, key)
+            : markNonInherited(inheritedState, key)),
           [key]: newValue,
         },
       });
@@ -76,11 +79,12 @@ const useLocationState = <T>(
     (options?: NavigateOptions, index?: number) => {
       const { navigate, location } = latestRef.current;
 
-      /* Skip closing a local value read from an entry that has been left */
-      if (
-        readLocalKeys(location.state).includes(key) &&
-        window.history.state?.key !== location.key
-      ) {
+      /* A non-inherited value read from an entry that has since been left */
+      const hasLeftEntry =
+        readNonInheritedKeys(location.state).includes(key) &&
+        window.history.state?.key !== location.key;
+
+      if (hasLeftEntry) {
         return;
       }
 
@@ -94,7 +98,7 @@ const useLocationState = <T>(
             ...options?.state,
             ...routerState.destroy(index),
             ...unmarkEphemeral(location.state, key),
-            ...unmarkLocal(location.state, key),
+            ...unmarkNonInherited(location.state, key),
             [key]: undefined,
           },
         });
