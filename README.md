@@ -95,7 +95,7 @@ setValue(undefined, {}, historyIndex);
 | --- | --- | --- |
 | `key` | `string` | State key in `location.state` |
 | `defaultValue` | `T` | Fallback when the key is not present |
-| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; indexKey?: string }`, see [Non-persistent state](#non-persistent-state) |
+| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; indexKey?: string; inherit?: boolean }`, see [Non-persistent state](#non-persistent-state) and [Non-inherited state](#non-inherited-state) |
 
 **Returns:** `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 
@@ -115,6 +115,18 @@ After a reload (or a Back into an entry from before it), `PWARoutingProvider` hi
 
 - If it has an `indexKey` (e.g. `useLocationToggle` with an `indexKey`), it returns to the entry before the dialog, the same way closing the toggle does.
 - Otherwise it goes back one entry at a time until it reaches a clean one.
+
+#### Non-inherited state
+
+Every push copies the current state, so a value is carried into entries pushed by other keys (e.g. a dialog opened on top). Pass `{ inherit: false }` to keep a value on the entry that set it:
+
+```tsx
+const [isOpen, setIsOpen] = useLocationToggle("keyboard", undefined, {
+  inherit: false,
+});
+```
+
+Entries pushed by other keys leave it out, so closing it always goes back from its own entry and never pops what was opened on top.
 
 ---
 
@@ -145,7 +157,7 @@ const [isSheetOpen, toggleSheet] = useLocationToggle("sheet", undefined, {
 | --- | --- | --- |
 | `key` | `string` | State key in `location.state` |
 | `indexKey` | `string?` | Optional key for index tracking (see `useLocationIndex`) |
-| `options` | `UseLocationStateOptions?` | `{ persist?: boolean }`, set `persist: false` to close on reload (see [Non-persistent state](#non-persistent-state)) |
+| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; inherit?: boolean }`, set `persist: false` to close on reload (see [Non-persistent state](#non-persistent-state)), `inherit: false` to keep it off entries pushed on top (see [Non-inherited state](#non-inherited-state)) |
 
 **Returns:** `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 
