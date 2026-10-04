@@ -95,12 +95,26 @@ setValue(undefined, {}, historyIndex);
 | --- | --- | --- |
 | `key` | `string` | State key in `location.state` |
 | `defaultValue` | `T` | Fallback when the key is not present |
+| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; indexKey?: string }`, see [Non-persistent state](#non-persistent-state) |
 
 **Returns:** `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 
 - When `value` is provided, navigates to the current location with the new state value.
 - When `value` is `undefined` and `index` is provided, calculates a history delta and navigates back to that entry.
 - When `value` is `undefined` and no `index`, navigates back one entry (or to `"/"` if there is no prior history).
+
+#### Non-persistent state
+
+By default, values survive a page reload because they live in `history.state`. Pass `{ persist: false }` to make a value ephemeral:
+
+```tsx
+const [value, setValue] = useLocationState("myKey", "default", { persist: false });
+```
+
+After a reload (or a Back into an entry from before it), `PWARoutingProvider` hides these values and navigates back behind the scenes:
+
+- If it has an `indexKey` (e.g. `useLocationToggle` with an `indexKey`), it returns to the entry before the dialog, the same way closing the toggle does.
+- Otherwise it goes back one entry at a time until it reaches a clean one.
 
 ---
 
@@ -118,6 +132,11 @@ toggle(true);
 
 // Close (navigates back)
 toggle(false);
+
+// Closed automatically after a page reload
+const [isSheetOpen, toggleSheet] = useLocationToggle("sheet", undefined, {
+  persist: false,
+});
 ```
 
 **Parameters:**
@@ -126,6 +145,7 @@ toggle(false);
 | --- | --- | --- |
 | `key` | `string` | State key in `location.state` |
 | `indexKey` | `string?` | Optional key for index tracking (see `useLocationIndex`) |
+| `options` | `UseLocationStateOptions?` | `{ persist?: boolean }`, set `persist: false` to close on reload (see [Non-persistent state](#non-persistent-state)) |
 
 **Returns:** `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 
@@ -153,15 +173,17 @@ const index = useLocationIndex("modal");
 
 ### `useLocationIndexUpdater`
 
-Stamps the current `history.length` onto `location.state` (under `__router_index_<key>`) so that `useLocationToggle` can navigate back to the correct entry when closing. Call this in a layout or page component that serves as a "base" for toggled UI.
+Stamps the current `history.length` onto `location.state` (under `__router_index_<key>`) when the component first mounts. Call it inside the toggled UI (e.g. a dialog). `useLocationToggle` can then return to the entry before the dialog when it closes, even after an iframe or nested navigation has added history entries.
 
 ```tsx
-import { useLocationIndexUpdater } from "@pwabucket/pwa-router";
+import { useLocationIndexUpdater, useLocationToggle } from "@pwabucket/pwa-router";
 
-function Layout() {
-  useLocationIndexUpdater("modal");
+function Dialog() {
+  useLocationIndexUpdater("dialog");
   // ...
 }
+
+const [isOpen, toggle] = useLocationToggle("dialog", "dialog");
 ```
 
 **Parameters:**
