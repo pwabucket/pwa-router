@@ -4,6 +4,7 @@ import { usePWARouting } from "./usePWARouting";
 import { routerState } from "../constants";
 import { getLocationPath } from "../utils/location";
 import { markEphemeral, unmarkEphemeral } from "../utils/ephemeralState";
+import { markLocal, removeLocalValues, unmarkLocal } from "../utils/localState";
 
 type UseLocationStateReturn<T> = [
   T,
@@ -15,13 +16,15 @@ interface UseLocationStateOptions {
   persist?: boolean;
   /** Index key to return to when the value is discarded after a reload */
   indexKey?: string;
+  /** Carry the value into entries pushed by other keys (default: true) */
+  inherit?: boolean;
 }
 
 /** State stored on the current history entry; clearing it navigates back */
 const useLocationState = <T>(
   key: string,
   defaultValue: T,
-  { persist = true, indexKey }: UseLocationStateOptions = {},
+  { persist = true, indexKey, inherit = true }: UseLocationStateOptions = {},
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
   const { resolvedLocation: location } = usePWARouting();
@@ -41,19 +44,23 @@ const useLocationState = <T>(
     (newValue: T, options?: NavigateOptions) => {
       const { navigate, location } = latestRef.current;
 
+      /* Local values stay on the entry that set them */
+      const baseState = removeLocalValues(location.state);
+
       navigate(getLocationPath(location), {
         ...options,
         state: {
-          ...location.state,
+          ...baseState,
           ...options?.state,
           ...(persist
-            ? unmarkEphemeral(location.state, key)
-            : markEphemeral(location.state, key, indexKey ?? null)),
+            ? unmarkEphemeral(baseState, key)
+            : markEphemeral(baseState, key, indexKey ?? null)),
+          ...(inherit ? unmarkLocal(baseState, key) : markLocal(baseState, key)),
           [key]: newValue,
         },
       });
     },
-    [key, persist, indexKey],
+    [key, persist, indexKey, inherit],
   );
 
   const clearValue = useCallback(
@@ -70,6 +77,7 @@ const useLocationState = <T>(
             ...options?.state,
             ...routerState.destroy(index),
             ...unmarkEphemeral(location.state, key),
+            ...unmarkLocal(location.state, key),
             [key]: undefined,
           },
         });

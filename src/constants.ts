@@ -11,6 +11,8 @@ export const ROUTER_NAVIGATE_INDEX = "__router_navigate_index";
 export const ROUTER_INDEX_PREFIX = "__router_index_";
 /** Keys set with persist: false, discarded after a reload */
 export const ROUTER_EPHEMERAL_KEYS = "__router_ephemeral_keys";
+/** Keys set with inherit: false, dropped from entries pushed by other keys */
+export const ROUTER_LOCAL_KEYS = "__router_local_keys";
 
 // ==============================
 // DX-Friendly Helpers
@@ -38,6 +40,10 @@ export const ephemeralKeys = (value?: EphemeralKeyMap) => ({
   [ROUTER_EPHEMERAL_KEYS]: value,
 });
 
+export const localKeys = (value?: string[]) => ({
+  [ROUTER_LOCAL_KEYS]: value,
+});
+
 // ==============================
 // Composable Namespace (recommended)
 // ==============================
@@ -47,6 +53,7 @@ export const routerState = {
   destroy: destroyIndex,
   navigate: navigateIndex,
   ephemeral: ephemeralKeys,
+  local: localKeys,
 };
 
 /**
