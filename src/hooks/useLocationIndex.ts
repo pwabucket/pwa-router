@@ -1,12 +1,11 @@
-import { ROUTER_INDEX_PREFIX } from "../constants";
+import { readLocationIndex } from "../utils/location";
 import { usePWARouting } from "./usePWARouting";
 
+/** History index stamped by useLocationIndexUpdater for the given key */
 const useLocationIndex = (key?: string) => {
   const { resolvedLocation: location } = usePWARouting();
-  const stateKey = ROUTER_INDEX_PREFIX + key;
-  const index: number | undefined = location.state?.[stateKey];
 
-  return index;
+  return readLocationIndex(location.state, key);
 };
 
 export { useLocationIndex };

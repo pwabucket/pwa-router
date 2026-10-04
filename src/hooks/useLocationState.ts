@@ -2,88 +2,97 @@ import { useCallback, useMemo, useRef } from "react";
 import { useNavigate, type NavigateOptions } from "react-router";
 import { usePWARouting } from "./usePWARouting";
 import { routerState } from "../constants";
+import { getLocationPath } from "../utils/location";
+import { markEphemeral, unmarkEphemeral } from "../utils/ephemeralState";
 
 type UseLocationStateReturn<T> = [
   T,
   (value?: T, options?: NavigateOptions, index?: number) => void,
 ];
 
+interface UseLocationStateOptions {
+  /** Keep the value after a page reload (default: true) */
+  persist?: boolean;
+  /** Index key to return to when the value is discarded after a reload */
+  indexKey?: string;
+}
+
+/** State stored on the current history entry; clearing it navigates back */
 const useLocationState = <T>(
   key: string,
   defaultValue: T,
+  { persist = true, indexKey }: UseLocationStateOptions = {},
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
   const { resolvedLocation: location } = usePWARouting();
-  const ref = useRef({
-    navigate,
-    location,
-  });
+
+  /* Keeps the setters stable across navigations */
+  const latestRef = useRef({ navigate, location });
 
   // oxlint-disable-next-line react/refs
-  ref.current.location = location;
+  latestRef.current.location = location;
   // oxlint-disable-next-line react/refs
-  ref.current.navigate = navigate;
+  latestRef.current.navigate = navigate;
 
   const valueFromState = location.state?.[key];
   const value: T = valueFromState !== undefined ? valueFromState : defaultValue;
 
-  /** Set value */
-  const setValue = useCallback(
-    (newValue?: T, options?: NavigateOptions, index?: number) => {
-      const { navigate, location } = ref.current;
-      /* If newValue is defined, update location state with new value */
-      if (newValue !== undefined) {
-        navigate(
-          {
-            pathname: location.pathname,
-            search: location.search,
-            hash: location.hash,
+  const pushValue = useCallback(
+    (newValue: T, options?: NavigateOptions) => {
+      const { navigate, location } = latestRef.current;
+
+      navigate(getLocationPath(location), {
+        ...options,
+        state: {
+          ...location.state,
+          ...options?.state,
+          ...(persist
+            ? unmarkEphemeral(location.state, key)
+            : markEphemeral(location.state, key, indexKey ?? null)),
+          [key]: newValue,
+        },
+      });
+    },
+    [key, persist, indexKey],
+  );
+
+  const clearValue = useCallback(
+    (options?: NavigateOptions, index?: number) => {
+      const { navigate, location } = latestRef.current;
+
+      if (index !== undefined && index < history.length) {
+        /* Return to the stamped index, skipping entries made since (iframes) */
+        navigate(getLocationPath(location), {
+          ...options,
+          replace: true,
+          state: {
+            ...location.state,
+            ...options?.state,
+            ...routerState.destroy(index),
+            ...unmarkEphemeral(location.state, key),
+            [key]: undefined,
           },
-          {
-            ...options,
-            state: {
-              ...location.state,
-              ...options?.state,
-              [key]: newValue,
-            },
-          },
-        );
+        });
+      } else if (index !== undefined || location.key !== "default") {
+        navigate(-1);
       } else {
-        /* If newValue is undefined, remove value from location state */
-        if (index !== undefined) {
-          if (index < history.length) {
-            navigate(
-              {
-                pathname: location.pathname,
-                search: location.search,
-                hash: location.hash,
-              },
-              {
-                ...options,
-                replace: true,
-                state: {
-                  ...location.state,
-                  ...options?.state,
-                  ...routerState.destroy(index),
-                  [key]: undefined,
-                },
-              },
-            );
-          } else {
-            navigate(-1);
-          }
-        } else if (location.key !== "default") {
-          navigate(-1);
-        } else {
-          navigate("/", { ...options, replace: true });
-        }
+        /* Landed here directly, nothing to go back to */
+        navigate("/", { ...options, replace: true });
       }
     },
     [key],
+  );
+
+  const setValue = useCallback(
+    (newValue?: T, options?: NavigateOptions, index?: number) =>
+      newValue !== undefined
+        ? pushValue(newValue, options)
+        : clearValue(options, index),
+    [pushValue, clearValue],
   );
 
   return useMemo(() => [value, setValue], [value, setValue]);
 };
 
 export { useLocationState };
-export type { UseLocationStateReturn };
+export type { UseLocationStateReturn, UseLocationStateOptions };

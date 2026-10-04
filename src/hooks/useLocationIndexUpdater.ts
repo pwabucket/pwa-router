@@ -3,50 +3,35 @@ import { useLayoutEffect, useRef } from "react";
 import { ROUTER_INDEX_PREFIX } from "../constants";
 import { useNavigate } from "react-router";
 import { usePWARouting } from "./usePWARouting";
+import { getLocationPath } from "../utils/location";
 
+/** Stamps the history length on the entry; call inside the dialog itself */
 const useLocationIndexUpdater = (key: string) => {
-  /* Create a unique key for storing index in location state */
-  const stateKey = ROUTER_INDEX_PREFIX + key;
-
-  /* Get location and index from location state */
+  const indexStateKey = ROUTER_INDEX_PREFIX + key;
   const { resolvedLocation: location } = usePWARouting();
-  const index: number | undefined = location.state?.[stateKey];
-
-  /* Ref to track initial history length */
-  const historyRef = useRef(history.length);
-
-  /* Ref to track component unmount */
-  const unMountedRef = useRef(false);
-
-  /* Get navigate function */
+  const index: number | undefined = location.state?.[indexStateKey];
+  const historyLengthOnMountRef = useRef(history.length);
+  const isUnmountedRef = useRef(false);
   const navigate = useNavigate();
 
-  /* Track component unmount to prevent state updates */
   useLayoutEffect(() => {
     return () => {
-      unMountedRef.current = true;
+      isUnmountedRef.current = true;
     };
   }, []);
 
-  /* Ensure location has an index */
   useLayoutEffect(() => {
-    /* If component is unmounted or index is already set, do nothing */
-    if (unMountedRef.current || index !== undefined) return;
+    if (isUnmountedRef.current || index !== undefined) return;
 
-    /* Update location state with index */
-    navigate(
-      {
-        pathname: location.pathname,
-        search: location.search,
-        hash: location.hash,
+    navigate(getLocationPath(location), {
+      flushSync: true,
+      replace: true,
+      state: {
+        ...location.state,
+        [indexStateKey]: historyLengthOnMountRef.current,
       },
-      {
-        flushSync: true,
-        replace: true,
-        state: { ...location.state, [stateKey]: historyRef.current },
-      },
-    );
-  }, [index, stateKey, location, navigate]);
+    });
+  }, [index, indexStateKey, location, navigate]);
 };
 
 export { useLocationIndexUpdater };
