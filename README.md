@@ -128,6 +128,8 @@ const [isOpen, setIsOpen] = useLocationToggle("keyboard", undefined, {
 
 Entries pushed by other keys leave it out, so closing it always goes back from its own entry and never pops what was opened on top.
 
+A push by another key while such a value is set replaces its entry instead of stacking on it, so closing what was opened returns to the entry before. Closing a non-inherited value is ignored when the entry it was read from is no longer the current one, so a close racing a navigation can't go back from the new entry.
+
 ---
 
 ### `useLocationToggle`

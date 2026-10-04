@@ -4,7 +4,12 @@ import { usePWARouting } from "./usePWARouting";
 import { routerState } from "../constants";
 import { getLocationPath } from "../utils/location";
 import { markEphemeral, unmarkEphemeral } from "../utils/ephemeralState";
-import { markLocal, removeLocalValues, unmarkLocal } from "../utils/localState";
+import {
+  markLocal,
+  readLocalKeys,
+  removeLocalValues,
+  unmarkLocal,
+} from "../utils/localState";
 
 type UseLocationStateReturn<T> = [
   T,
@@ -44,10 +49,14 @@ const useLocationState = <T>(
     (newValue: T, options?: NavigateOptions) => {
       const { navigate, location } = latestRef.current;
 
+      /* Local entries are replaced by the next push */
+      const hasLocalValues = readLocalKeys(location.state).length > 0;
+
       /* Local values stay on the entry that set them */
       const baseState = removeLocalValues(location.state);
 
       navigate(getLocationPath(location), {
+        replace: hasLocalValues,
         ...options,
         state: {
           ...baseState,
@@ -66,6 +75,14 @@ const useLocationState = <T>(
   const clearValue = useCallback(
     (options?: NavigateOptions, index?: number) => {
       const { navigate, location } = latestRef.current;
+
+      /* Skip closing a local value read from an entry that has been left */
+      if (
+        readLocalKeys(location.state).includes(key) &&
+        window.history.state?.key !== location.key
+      ) {
+        return;
+      }
 
       if (index !== undefined && index < history.length) {
         /* Return to the stamped index, skipping entries made since (iframes) */
