@@ -19,9 +19,9 @@ const useLocationState = <T>(
     location,
   });
 
-  // eslint-disable-next-line
+  // oxlint-disable-next-line react/refs
   ref.current.location = location;
-  // eslint-disable-next-line
+  // oxlint-disable-next-line react/refs
   ref.current.navigate = navigate;
 
   const valueFromState = location.state?.[key];

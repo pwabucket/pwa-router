@@ -61,7 +61,7 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
         },
       };
 
-      // eslint-disable-next-line
+      // oxlint-disable-next-line react/set-state-in-effect
       setTempLocation(newLocation);
       setTempRouterOptions({
         replace: navigationType === "REPLACE",
