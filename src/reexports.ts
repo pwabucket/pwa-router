@@ -1,0 +1,37 @@
+/* React Router pieces that need no engine awareness */
+export {
+  BrowserRouter,
+  Outlet,
+  Route,
+  createSearchParams,
+  generatePath,
+  matchPath,
+  resolvePath,
+  useBeforeUnload,
+  useHref,
+  useInRouterContext,
+  useMatch,
+  useOutletContext,
+  useParams,
+  useResolvedPath,
+} from "react-router";
+
+export type {
+  BrowserRouterProps,
+  LinkProps,
+  Location,
+  NavigateFunction,
+  NavigateOptions,
+  NavigateProps,
+  NavLinkProps,
+  NavLinkRenderProps,
+  OutletProps,
+  Params,
+  Path,
+  PathMatch,
+  RouteProps,
+  RoutesProps,
+  SetURLSearchParams,
+  To,
+  URLSearchParamsInit,
+} from "react-router";

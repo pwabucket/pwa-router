@@ -19,40 +19,36 @@ pnpm add @pwabucket/pwa-router
 
 ## Setup
 
-Wrap your application with `PWARoutingProvider` inside a React Router context. The provider manages internal history tracking needed by the routing hooks.
+Wrap your application with `PWARouter`, a `BrowserRouter` with the `PWARoutingProvider` already inside. The provider manages internal history tracking needed by the routing hooks. Then render your routes with this package's `Routes`, which matches against the resolved location.
 
 ```tsx
 // main.tsx
 import App from "./App.tsx";
-import { BrowserRouter } from "react-router";
-import { PWARoutingProvider } from "@pwabucket/pwa-router";
+import { PWARouter } from "@pwabucket/pwa-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <PWARoutingProvider>
-        <App />
-      </PWARoutingProvider>
-    </BrowserRouter>
+    <PWARouter>
+      <App />
+    </PWARouter>
   </StrictMode>,
 );
 
 // App.tsx
-import { usePWARouting } from "@pwabucket/pwa-router";
-import { Routes, Route } from "react-router";
+import { Route, Routes } from "@pwabucket/pwa-router";
 
 function App() {
-  const { resolvedLocation } = usePWARouting();
-  
   return (
-    <Routes location={resolvedLocation}>
-        {/* your routes */}
+    <Routes>
+      {/* your routes */}
     </Routes>
   );
 }
 ```
+
+To place the provider yourself, wrap your app with `PWARoutingProvider` inside any React Router context.
 
 ## Hooks
 
@@ -102,6 +98,20 @@ navigate(-1);
 ```
 
 **Returns:** `NavigateFunction`
+
+---
+
+### `useSearchParams`
+
+Drop-in replacement for React Router's `useSearchParams`. Reads come from `resolvedLocation`, and the setter goes through [`useNavigate`](#usenavigate).
+
+```tsx
+import { useSearchParams } from "@pwabucket/pwa-router";
+
+const [searchParams, setSearchParams] = useSearchParams();
+
+setSearchParams({ page: "2" }, { replace: true });
+```
 
 ---
 
@@ -267,9 +277,9 @@ function Header() {
 
 ## Components
 
-### `Link` / `NavLink` / `Navigate`
+### `Link` / `NavLink` / `Navigate` / `Routes`
 
-Drop-in replacements for React Router's `Link`, `NavLink` and `Navigate`, with the same props. Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting and pushes from an entry holding non-inherited state replace it. `NavLink` matches its active state against `resolvedLocation`. `Navigate` waits for a correction to finish before redirecting.
+Drop-in replacements for React Router's `Link`, `NavLink`, `Navigate` and `Routes`, with the same props. Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting and pushes from an entry holding non-inherited state replace it. `NavLink` matches its active state against `resolvedLocation`. `Navigate` waits for a correction to finish before redirecting. `Routes` matches against `resolvedLocation` unless a `location` is passed.
 
 ```tsx
 import { Link, Navigate, NavLink } from "@pwabucket/pwa-router";
@@ -277,14 +287,29 @@ import { Link, Navigate, NavLink } from "@pwabucket/pwa-router";
 <Link to="/posts">Posts</Link>
 <NavLink to="/users">Users</NavLink>
 <Navigate to="/login" replace />
+<Routes>{/* your routes */}</Routes>
 ```
 
 Prefer these and the hooks above over React Router's, so navigation goes through the provider.
+
+### `PWARouter`
+
+A `BrowserRouter` with the `PWARoutingProvider` already inside. Takes the same props as `BrowserRouter`.
+
+## Re-exports
+
+So apps can import routing from this package alone, these React Router exports are passed through unchanged:
+
+- **Components:** `BrowserRouter`, `Outlet`, `Route`
+- **Hooks:** `useBeforeUnload`, `useHref`, `useInRouterContext`, `useMatch`, `useOutletContext`, `useParams`, `useResolvedPath`
+- **Utilities:** `createSearchParams`, `generatePath`, `matchPath`, `resolvePath`
+- **Types:** `BrowserRouterProps`, `LinkProps`, `Location`, `NavigateFunction`, `NavigateOptions`, `NavigateProps`, `NavLinkProps`, `NavLinkRenderProps`, `OutletProps`, `Params`, `Path`, `PathMatch`, `RouteProps`, `RoutesProps`, `SetURLSearchParams`, `To`, `URLSearchParamsInit`
 
 ## Types
 
 The following types are exported for convenience:
 
+- **`PWARouterProps`** — same as `BrowserRouterProps`
 - **`PWARoutingContextValue`** — `{ resolvedLocation: Location; isCorrecting: boolean }`
 - **`UseLocationStateReturn<T>`** — `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 - **`UseLocationToggleReturn`** — `[boolean, (status: boolean, options?: NavigateOptions) => void]`
