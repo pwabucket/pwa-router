@@ -66,7 +66,42 @@ import { usePWARouting } from "@pwabucket/pwa-router";
 const { resolvedLocation } = usePWARouting();
 ```
 
-**Returns:** `PWARoutingContextValue` — `{ resolvedLocation: Location }`
+**Returns:** `PWARoutingContextValue` — `{ resolvedLocation: Location; isCorrecting: boolean }`
+
+`isCorrecting` is `true` while the provider is correcting the history (going back to a position, discarding stale non-persistent state, jumping back to a stamped index). Navigations made through this package are ignored meanwhile.
+
+---
+
+### `useLocation`
+
+Drop-in replacement for React Router's `useLocation` that returns `resolvedLocation`, so stale non-persistent values and intermediate locations are never seen.
+
+```tsx
+import { useLocation } from "@pwabucket/pwa-router";
+
+const location = useLocation();
+```
+
+---
+
+### `useNavigate`
+
+Drop-in replacement for React Router's `useNavigate` that is aware of the provider:
+
+- Calls are ignored while `isCorrecting` is `true`, so they can't race a correction.
+- A push from an entry holding [non-inherited state](#non-inherited-state) replaces that entry (pass `replace` explicitly to override), so Back returns to the entry before it.
+- The returned function is stable across navigations.
+
+```tsx
+import { useNavigate } from "@pwabucket/pwa-router";
+
+const navigate = useNavigate();
+
+navigate("/posts");
+navigate(-1);
+```
+
+**Returns:** `NavigateFunction`
 
 ---
 
@@ -230,11 +265,26 @@ function Header() {
 
 **Returns:** `(options?: NavigateOptions) => void`
 
+## Components
+
+### `Link` / `NavLink`
+
+Drop-in replacements for React Router's `Link` and `NavLink`, with the same props. Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting and pushes from an entry holding non-inherited state replace it. `NavLink` matches its active state against `resolvedLocation`.
+
+```tsx
+import { Link, NavLink } from "@pwabucket/pwa-router";
+
+<Link to="/posts">Posts</Link>
+<NavLink to="/users">Users</NavLink>
+```
+
+Prefer these and the hooks above over React Router's, so navigation goes through the provider.
+
 ## Types
 
 The following types are exported for convenience:
 
-- **`PWARoutingContextValue`** — `{ resolvedLocation: Location }`
+- **`PWARoutingContextValue`** — `{ resolvedLocation: Location; isCorrecting: boolean }`
 - **`UseLocationStateReturn<T>`** — `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 - **`UseLocationToggleReturn`** — `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from "react";
-import { useNavigate, type NavigateOptions } from "react-router";
-import { usePWARouting } from "./usePWARouting";
+import { type NavigateOptions } from "react-router";
+import { useLocation } from "./useLocation";
+import { useNavigate } from "./useNavigate";
 import { routerState } from "../constants";
 import { getLocationPath } from "../utils/location";
 import { markEphemeral, unmarkEphemeral } from "../utils/ephemeralState";
@@ -32,32 +33,26 @@ const useLocationState = <T>(
   { persist = true, indexKey, inherit = true }: UseLocationStateOptions = {},
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
-  const { resolvedLocation: location } = usePWARouting();
+  const location = useLocation();
 
-  /* Keeps the setters stable across navigations */
-  const latestRef = useRef({ navigate, location });
+  /* Keeps the setters stable across navigations (navigate is already stable) */
+  const locationRef = useRef(location);
 
   // oxlint-disable-next-line react/refs
-  latestRef.current.location = location;
-  // oxlint-disable-next-line react/refs
-  latestRef.current.navigate = navigate;
+  locationRef.current = location;
 
   const valueFromState = location.state?.[key];
   const value: T = valueFromState !== undefined ? valueFromState : defaultValue;
 
   const pushValue = useCallback(
     (newValue: T, options?: NavigateOptions) => {
-      const { navigate, location } = latestRef.current;
-
-      /* Entries holding non-inherited values are replaced by the next push */
-      const isNonInheritedEntry =
-        readNonInheritedKeys(location.state).length > 0;
+      const location = locationRef.current;
 
       /* Non-inherited values stay on the entry that set them */
       const inheritedState = removeNonInheritedValues(location.state);
 
+      /* navigate replaces entries holding non-inherited values */
       navigate(getLocationPath(location), {
-        replace: isNonInheritedEntry,
         ...options,
         state: {
           ...inheritedState,
@@ -72,12 +67,12 @@ const useLocationState = <T>(
         },
       });
     },
-    [key, persist, indexKey, inherit],
+    [key, persist, indexKey, inherit, navigate],
   );
 
   const clearValue = useCallback(
     (options?: NavigateOptions, index?: number) => {
-      const { navigate, location } = latestRef.current;
+      const location = locationRef.current;
 
       /* A non-inherited value read from an entry that has since been left */
       const hasLeftEntry =
@@ -109,7 +104,7 @@ const useLocationState = <T>(
         navigate("/", { ...options, replace: true });
       }
     },
-    [key],
+    [key, navigate],
   );
 
   const setValue = useCallback(

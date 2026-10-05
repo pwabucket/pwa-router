@@ -4,6 +4,11 @@ export type { PWARoutingContextValue } from "./contexts/PWARoutingContext";
 export { PWARoutingProvider } from "./providers/PWARoutingProvider";
 export { usePWARouting } from "./hooks/usePWARouting";
 
+export { Link } from "./components/Link";
+export { NavLink } from "./components/NavLink";
+export { useLocation } from "./hooks/useLocation";
+export { useNavigate } from "./hooks/useNavigate";
+
 export { useLocationIndex } from "./hooks/useLocationIndex";
 export { useLocationIndexUpdater } from "./hooks/useLocationIndexUpdater";
 

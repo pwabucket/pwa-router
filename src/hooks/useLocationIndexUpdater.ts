@@ -1,14 +1,14 @@
 import { useLayoutEffect, useRef } from "react";
 
 import { ROUTER_INDEX_PREFIX } from "../constants";
-import { useNavigate } from "react-router";
-import { usePWARouting } from "./usePWARouting";
+import { useLocation } from "./useLocation";
+import { useNavigate } from "./useNavigate";
 import { getLocationPath } from "../utils/location";
 
 /** Stamps the history length on the entry; call inside the dialog itself */
 const useLocationIndexUpdater = (key: string) => {
   const indexStateKey = ROUTER_INDEX_PREFIX + key;
-  const { resolvedLocation: location } = usePWARouting();
+  const location = useLocation();
   const index: number | undefined = location.state?.[indexStateKey];
   const historyLengthOnMountRef = useRef(history.length);
   const isUnmountedRef = useRef(false);

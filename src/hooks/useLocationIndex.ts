@@ -1,9 +1,9 @@
 import { readLocationIndex } from "../utils/location";
-import { usePWARouting } from "./usePWARouting";
+import { useLocation } from "./useLocation";
 
 /** History index stamped by useLocationIndexUpdater for the given key */
 const useLocationIndex = (key?: string) => {
-  const { resolvedLocation: location } = usePWARouting();
+  const location = useLocation();
 
   return readLocationIndex(location.state, key);
 };

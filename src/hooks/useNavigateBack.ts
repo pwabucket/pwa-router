@@ -1,11 +1,11 @@
 import { useCallback } from "react";
-import { useNavigate, type NavigateOptions } from "react-router";
-import { usePWARouting } from "./usePWARouting";
+import { type NavigateOptions } from "react-router";
+import { useLocation } from "./useLocation";
+import { useNavigate } from "./useNavigate";
 
 const useNavigateBack = (root = "/") => {
   const navigate = useNavigate();
-  const { resolvedLocation: location } = usePWARouting();
-  const key = location.key;
+  const { key } = useLocation();
 
   const navigateBack = useCallback(
     (options?: NavigateOptions) => {

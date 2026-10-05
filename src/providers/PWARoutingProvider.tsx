@@ -1,6 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocation } from "react-router";
 
+import {
+  ROUTER_DESTROY_INDEX,
+  ROUTER_FROM_POSITION,
+  ROUTER_NAVIGATE_INDEX,
+} from "../constants";
 import { PWARoutingContext } from "../contexts/PWARoutingContext";
 import { useCorrectionLock } from "./engine/useCorrectionLock";
 import { useDestroyIndexHandler } from "./engine/useDestroyIndexHandler";
@@ -38,8 +43,21 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
   /** Pass to <Routes> */
   const resolvedLocation = pendingNavigation?.location || sanitizedLocation;
 
+  /* A correction is pending or in flight on the current entry */
+  const isCorrecting =
+    hasStaleEphemeralState ||
+    pendingNavigation !== null ||
+    location.state?.[ROUTER_FROM_POSITION] !== undefined ||
+    location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
+    location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
+
+  const value = useMemo(
+    () => ({ resolvedLocation, isCorrecting }),
+    [resolvedLocation, isCorrecting],
+  );
+
   return (
-    <PWARoutingContext.Provider value={{ resolvedLocation }}>
+    <PWARoutingContext.Provider value={value}>
       {children}
     </PWARoutingContext.Provider>
   );

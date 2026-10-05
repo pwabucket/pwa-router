@@ -1,3 +1,4 @@
+import { Link } from "../../components/Link";
 import { useLocationIndexUpdater } from "../../hooks/useLocationIndexUpdater";
 import { useLocationToggle } from "../../hooks/useLocationToggle";
 
@@ -58,6 +59,13 @@ const UseLocationToggleDemo = () => {
       <button onClick={() => setNonInheritedOpened(!nonInheritedOpened)}>
         Non-inherited panel is: {nonInheritedOpened ? "opened" : "closed"}
       </button>
+
+      {nonInheritedOpened && (
+        <p>
+          <Link to="/elsewhere">Go to /elsewhere</Link> (replaces the panel
+          entry, so Back returns to the entry before it)
+        </p>
+      )}
 
       {sheetOpened && <Sheet onClose={() => setSheetOpened(false)} />}
     </>

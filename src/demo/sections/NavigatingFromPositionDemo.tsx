@@ -1,6 +1,8 @@
-import { Link, useLocation } from "react-router";
+import { Link } from "../../components/Link";
+import { NavLink } from "../../components/NavLink";
 
 import { fromPosition } from "../../constants";
+import { useLocation } from "../../hooks/useLocation";
 import { useNavigateBack } from "../../hooks/useNavigateBack";
 import { useState } from "react";
 
@@ -31,7 +33,12 @@ const NavigatingFromPositionDemo = () => {
       <p>Path: {location.pathname}</p>
 
       {/* Go to /dashboard */}
-      <Link to="/dashboard">Go to /dashboard</Link>
+      <NavLink
+        to="/dashboard"
+        style={({ isActive }) => ({ fontWeight: isActive ? "bold" : undefined })}
+      >
+        Go to /dashboard
+      </NavLink>
       <br />
 
       {/* Go to /sidebar */}
