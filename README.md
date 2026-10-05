@@ -267,15 +267,16 @@ function Header() {
 
 ## Components
 
-### `Link` / `NavLink`
+### `Link` / `NavLink` / `Navigate`
 
-Drop-in replacements for React Router's `Link` and `NavLink`, with the same props. Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting and pushes from an entry holding non-inherited state replace it. `NavLink` matches its active state against `resolvedLocation`.
+Drop-in replacements for React Router's `Link`, `NavLink` and `Navigate`, with the same props. Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting and pushes from an entry holding non-inherited state replace it. `NavLink` matches its active state against `resolvedLocation`. `Navigate` waits for a correction to finish before redirecting.
 
 ```tsx
-import { Link, NavLink } from "@pwabucket/pwa-router";
+import { Link, Navigate, NavLink } from "@pwabucket/pwa-router";
 
 <Link to="/posts">Posts</Link>
 <NavLink to="/users">Users</NavLink>
+<Navigate to="/login" replace />
 ```
 
 Prefer these and the hooks above over React Router's, so navigation goes through the provider.

@@ -6,6 +6,7 @@ export { usePWARouting } from "./hooks/usePWARouting";
 
 export { Link } from "./components/Link";
 export { NavLink } from "./components/NavLink";
+export { Navigate } from "./components/Navigate";
 export { useLocation } from "./hooks/useLocation";
 export { useNavigate } from "./hooks/useNavigate";
 

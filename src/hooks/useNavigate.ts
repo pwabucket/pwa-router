@@ -28,8 +28,8 @@ const useNavigate = (): NavigateFunction => {
     if (typeof to === "number") return navigate(to);
 
     return navigate(to, {
-      replace: isNonInheritedEntry(location.state),
       ...options,
+      replace: options?.replace ?? isNonInheritedEntry(location.state),
     });
   }, []) as NavigateFunction;
 };
