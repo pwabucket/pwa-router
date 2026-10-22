@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useContext, useMemo, useRef } from "react";
 import { type NavigateOptions } from "react-router";
 import { useLocation } from "./useLocation";
 import { useNavigate } from "./useNavigate";
 import { routerState } from "../constants";
+import { PendingStatesContext } from "../contexts/PendingStatesContext";
 import { getLocationPath } from "../utils/location";
 import { markEphemeral, unmarkEphemeral } from "../utils/ephemeralState";
 import {
@@ -34,6 +35,7 @@ const useLocationState = <T>(
 ): UseLocationStateReturn<T> => {
   const navigate = useNavigate();
   const location = useLocation();
+  const setPendingState = useContext(PendingStatesContext)!;
 
   /* Keeps the setters stable across navigations (navigate is already stable) */
   const locationRef = useRef(location);
@@ -107,12 +109,25 @@ const useLocationState = <T>(
     [key, navigate],
   );
 
+  /* The value on the current entry, undefined when unset */
+  const readEntryValue = useCallback(
+    () => locationRef.current.state?.[key],
+    [key],
+  );
+
+  /* Batched like setState: calls queue per key and navigate once for the net change */
   const setValue = useCallback(
     (newValue?: T, options?: NavigateOptions, index?: number) =>
-      newValue !== undefined
-        ? pushValue(newValue, options)
-        : clearValue(options, index),
-    [pushValue, clearValue],
+      setPendingState(
+        key,
+        newValue,
+        () =>
+          newValue !== undefined
+            ? pushValue(newValue, options)
+            : clearValue(options, index),
+        readEntryValue,
+      ),
+    [key, setPendingState, pushValue, clearValue, readEntryValue],
   );
 
   return useMemo(() => [value, setValue], [value, setValue]);

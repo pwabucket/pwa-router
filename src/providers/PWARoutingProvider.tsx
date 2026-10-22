@@ -6,6 +6,7 @@ import {
   ROUTER_FROM_POSITION,
   ROUTER_NAVIGATE_INDEX,
 } from "../constants";
+import { PendingStatesContext } from "../contexts/PendingStatesContext";
 import { PWARoutingContext } from "../contexts/PWARoutingContext";
 import { useCorrectionLock } from "./engine/useCorrectionLock";
 import { useDestroyIndexHandler } from "./engine/useDestroyIndexHandler";
@@ -13,6 +14,7 @@ import { useEphemeralStateHandler } from "./engine/useEphemeralStateHandler";
 import { useFromPositionHandler } from "./engine/useFromPositionHandler";
 import { useNavigateIndexHandler } from "./engine/useNavigateIndexHandler";
 import { usePendingNavigationHandler } from "./engine/usePendingNavigationHandler";
+import { usePendingStates } from "./engine/usePendingStates";
 
 const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
@@ -51,6 +53,8 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
     location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
     location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
 
+  const setPendingState = usePendingStates(location.key, isCorrecting);
+
   const value = useMemo(
     () => ({ resolvedLocation, isCorrecting }),
     [resolvedLocation, isCorrecting],
@@ -58,7 +62,9 @@ const PWARoutingProvider = ({ children }: { children?: React.ReactNode }) => {
 
   return (
     <PWARoutingContext.Provider value={value}>
-      {children}
+      <PendingStatesContext.Provider value={setPendingState}>
+        {children}
+      </PendingStatesContext.Provider>
     </PWARoutingContext.Provider>
   );
 };

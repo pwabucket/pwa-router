@@ -148,6 +148,25 @@ setValue(undefined, {}, historyIndex);
 - When `value` is `undefined` and `index` is provided, calculates a history delta and navigates back to that entry.
 - When `value` is `undefined` and no `index`, navigates back one entry (or to `"/"` if there is no prior history).
 
+#### Batched updates
+
+The setter follows the rules of React's `setState`, with the history entry as the store:
+
+- Calls queue up per key and the latest value wins. Calls made in the same tick send at most one navigation, for the net change from the entry's value.
+- Setting the value the key already has, or is already on its way to, does nothing (compared with `Object.is`).
+- Every `useLocationState` of a key shares one queue, so two components setting the same key navigate once.
+- A value set while a navigation for the key is still on its way waits until it lands, then applies.
+
+```tsx
+setValue(undefined);
+setValue(undefined); // ignored: already being cleared
+
+setValue("a");
+setValue(undefined); // same tick: no change, so no navigation
+```
+
+> **Changed in 0.0.25:** setter calls are batched. Repeated calls navigate once, and clearing a value that isn't set no longer navigates back. Use [`useNavigateBack`](#usenavigateback) to go back on purpose.
+
 #### Non-persistent state
 
 By default, values survive a page reload because they live in `history.state`. Pass `{ persist: false }` to make a value ephemeral:

@@ -27,6 +27,8 @@ const Sheet = ({ onClose }: { onClose: () => void }) => {
 
 const UseLocationToggleDemo = () => {
   const [opened, setOpened] = useLocationToggle("modal");
+  /* A second reader of the same key, like another component would be */
+  const [, setOpenedElsewhere] = useLocationToggle("modal");
   const [ephemeralOpened, setEphemeralOpened] = useLocationToggle(
     "ephemeral-modal",
     undefined,
@@ -46,6 +48,39 @@ const UseLocationToggleDemo = () => {
 
       <button onClick={() => setOpened(!opened)}>
         Modal is: {opened ? "opened" : "closed"}
+      </button>
+
+      {/* Setter calls batch like setState: one navigation for the net change */}
+      <button
+        onClick={() => {
+          for (let i = 0; i < 4; i++) setOpened(false);
+        }}
+      >
+        Close modal 4×
+      </button>
+      <button
+        onClick={() => {
+          setOpened(true);
+          setOpened(true);
+        }}
+      >
+        Open modal 2×
+      </button>
+      <button
+        onClick={() => {
+          setOpened(true);
+          setOpened(false);
+        }}
+      >
+        Open then close modal
+      </button>
+      <button
+        onClick={() => {
+          setOpened(false);
+          setOpenedElsewhere(false);
+        }}
+      >
+        Close modal from two hooks
       </button>
 
       <button onClick={() => setEphemeralOpened(!ephemeralOpened)}>
