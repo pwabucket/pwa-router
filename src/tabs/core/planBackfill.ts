@@ -20,8 +20,10 @@ export const planBackfill = (
   const current = saveTabSteps(area, location, record).at(-1);
   const defaultTab = findTab(config, config.defaultTab);
 
-  /* A default tab without a root starts where the area opened: nothing goes below */
-  if (!current || defaultTab.root === undefined) return null;
+  /* Turned off, or a default tab without a root (it starts where the area opened): nothing goes below */
+  if (!current || !config.deepLinkRoots || defaultTab.root === undefined) {
+    return null;
+  }
 
   /* The pages from the bottom: default root, tab root, then the current page */
   const pages: StepRecord[] = [rootPageStep(defaultTab, area, newStepId())];

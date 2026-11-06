@@ -137,14 +137,14 @@ const TabPane = ({ id, children }: { id: string; children: React.ReactNode }) =>
 - **Back inside a tab** goes through that tab's pages and the layers opened on them.
 - **Back from a tab's first page** goes to the default tab, where you left it. Back from the default tab's first page leaves the tab area.
 - **Switching tabs** shows the tab where you left it, and never builds up history.
-- **Tapping the active tab** pops it to its first page.
+- **Popping a tab to its first page** is `popToRoot()`, for example when the active tab is tapped again; the tab bar decides.
 - **Any navigation from inside a tab belongs to that tab**, whatever its address, so tabs can share routes. That includes links made with React Router directly.
 - **Leaving the tab area** (logout, onboarding) clears every tab's history at once: pass `exitTabs` to `useNavigate`, `Link`, `NavLink` or `Navigate`.
 
   ```tsx
   <Link to="/login" exitTabs replace>Log out</Link>
   ```
-- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address, or the default tab when none matches. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app.
+- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address, or the default tab when none matches. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app. Pass `deepLinkRoots={false}` to `TabsRoot` to put nothing underneath.
 - **A reload** keeps the active tab, its pages and layers, and every other tab's.
 
 ### How the history is kept
@@ -212,7 +212,8 @@ const { active, select, popToRoot } = useTabs();
 
 **Returns:** `{ active: string; select: (tab: string) => void; popToRoot: () => void }`
 - `active` is the tab on show; it changes as soon as `select` is called.
-- `select(tab)` switches to a tab. On the active tab, it pops to the first page.
+- `select(tab)` switches to a tab. On the active tab, it does nothing.
+- `popToRoot()` pops the active tab to its first page, closing everything above it. Unlike a switch, it asks a [leave guard](#useleaveguard) it would leave.
 - `select` and `popToRoot` are stable.
 
 ---
@@ -452,6 +453,7 @@ const guard = useLeaveGuard({ when: hasUnsavedChanges, key: "editor" });
 | --- | --- | --- |
 | `when` | `boolean` | There is unsaved work to protect |
 | `key` | `string?` | The layer to guard. Without one the guard covers the page (its pathname) |
+| `warnOnUnload` | `boolean?` | Also show the browser's own warning on reload and closing the tab (default: `true`) |
 
 **Returns:** `{ isBlocked: boolean; stay: () => void; leave: () => void }`
 
@@ -460,7 +462,7 @@ const guard = useLeaveGuard({ when: hasUnsavedChanges, key: "editor" });
 - **`leave` finishes the move the user tried**, landing where they would have gone without the question.
 - **Moves inside the scope never ask:** opening or closing dialogs, menus, tabs or the scope's own panes.
 - **Protection never switches itself off:** the next attempt asks again, and once `when` is false, leaving needs no extra taps.
-- **Reloading and closing the tab** show the browser's own warning while `when` is true.
+- **Reloading and closing the tab** show the browser's own warning while `when` is true. Pass `warnOnUnload: false` to skip it, for example when the work is saved as a draft.
 
 A back press is noticed after the browser has moved, then undone, while the guarded screen stays on show. No hidden entries are added. Clearing a layer's value doesn't count as leaving a *page*: only layer guards check those.
 
@@ -581,6 +583,7 @@ See [Tabbed apps](#tabbed-apps).
 | `id` | `string` | The tabbed area's id |
 | `tabs` | `TabDefinition[]` | Every tab: `{ id: string; root?: string }`, where `root` is the path of its first page. Without one, the tab starts on the address the area was opened on ([tabs at one address](#tabs-at-one-address)). Keep the list constant |
 | `defaultTab` | `string` | The tab at the bottom: back from any other tab returns to it |
+| `deepLinkRoots` | `boolean?` | Put the tab roots under a page the app is first opened on, so back goes there first (default: `true`) |
 
 | `TabView` prop | Type | Description |
 | --- | --- | --- |
@@ -602,7 +605,7 @@ Exposes the engine's status to end-to-end tests as an attribute on the root elem
 
 People open PWAs directly on inner pages, from shared links or home-screen shortcuts. With nothing earlier in the tab, the system back gesture closes the app instead of going home.
 
-Inside a [tabbed area](#tabbed-apps) this happens on its own, with the tab roots underneath. A default tab without a `root` puts nothing underneath. Elsewhere, with `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
+Inside a [tabbed area](#tabbed-apps) this happens on its own, with the tab roots underneath, unless `TabsRoot` has `deepLinkRoots={false}`. A default tab without a `root` puts nothing underneath. Elsewhere, with `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
 
 ## State markers
 

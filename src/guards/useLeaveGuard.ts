@@ -24,6 +24,8 @@ interface UseLeaveGuardOptions {
   when: boolean;
   /** The key of the layer to guard (e.g. a dialog's toggle); without one the guard covers the page */
   key?: string;
+  /** Also show the browser's own warning on reload and closing the tab (default: true) */
+  warnOnUnload?: boolean;
 }
 
 /** A leave guard's question and its answers */
@@ -40,6 +42,7 @@ interface LeaveGuardControls {
 const useLeaveGuard = ({
   when,
   key,
+  warnOnUnload = true,
 }: UseLeaveGuardOptions): LeaveGuardControls => {
   const id = useId();
   const guards = useContext(LeaveGuardsContext)!;
@@ -68,7 +71,7 @@ const useLeaveGuard = ({
 
   /* The browser's own warning on reload and closing the tab */
   useEffect(() => {
-    if (!when) return;
+    if (!when || !warnOnUnload) return;
 
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
@@ -77,7 +80,7 @@ const useLeaveGuard = ({
 
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [when]);
+  }, [when, warnOnUnload]);
 
   /** Closes the question and stays */
   const stay = useCallback(() => {

@@ -13,7 +13,7 @@ interface TabsContextValue {
   saved: SavedTabSteps;
   /** The address the area was opened on; tabs without a root start there */
   address: Address;
-  /** Switches to a tab; the active one pops to its root */
+  /** Switches to a tab; the active one stays as it is */
   select: (tab: string) => void;
   /** Pops the active tab to its root */
   popToRoot: () => void;

@@ -94,6 +94,22 @@ describe("planTabsOp", () => {
       "a",
     ]);
   });
+  it("does nothing when the active tab is selected", () => {
+    const area = {
+      ...createArea("main", "search", 1, 0),
+      steps: [page("search", 3), page("results", 4)],
+    };
+    const plan = planTabsOp(
+      { kind: "select", area: "main", tab: "search" },
+      config,
+      entry("/results", area),
+      memory,
+      stepIds(),
+    );
+
+    expect(plan).toBeNull();
+  });
+
   it("closes the slot to return to the default tab", () => {
     const area = {
       ...createArea("main", "search", 1, 0),

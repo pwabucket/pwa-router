@@ -12,6 +12,7 @@ import type { TabsConfig } from "../tabs";
 export const config: TabsConfig = {
   id: "main",
   defaultTab: "home",
+  deepLinkRoots: true,
   tabs: [
     { id: "home", root: "/" },
     { id: "search", root: "/search" },
@@ -63,6 +64,7 @@ export const memory = { version: 0, saved: {} };
 export const layout: TabsConfig = {
   id: "main",
   defaultTab: "canvas",
+  deepLinkRoots: true,
   tabs: [{ id: "canvas" }, { id: "items" }, { id: "settings", root: "/s" }],
 };
 

@@ -28,6 +28,8 @@ export interface TabsConfig {
   id: string;
   tabs: TabDefinition[];
   defaultTab: string;
+  /** Put the default tab's root (and the tab's) under a first entry opened on a tab page */
+  deepLinkRoots: boolean;
   /** The outer area and tab this area lives in, when nested */
   parent?: { area: string; tab: string };
 }

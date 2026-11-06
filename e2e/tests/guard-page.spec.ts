@@ -10,6 +10,19 @@ const openWithChanges = async (page: Page) => {
   return start;
 };
 
+/** Closes the tab with its unload handlers, and tells whether the browser warned */
+const closeAndReadWarning = async (page: Page) => {
+  let hasWarned = false;
+  page.on("dialog", async (dialog) => {
+    hasWarned = dialog.type() === "beforeunload";
+    await dialog.accept();
+  });
+
+  await page.close({ runBeforeUnload: true });
+  await page.waitForEvent("close");
+  return hasWarned;
+};
+
 /** The question is showing, on the guard page, with the work intact */
 const expectQuestion = async (page: Page) => {
   const question = page.getByRole("dialog", { name: "Leave without saving?" });
@@ -142,5 +155,21 @@ test.describe("deep link home", () => {
 
     expect(second.length).toBe(first.length);
     expect(second.index).toBe(1);
+  });
+});
+
+test.describe("browser warning", () => {
+  test("closing the tab shows the browser's warning", async ({ page }) => {
+    await visit(page, "/guard-page");
+    await press(page, "Make changes");
+
+    expect(await closeAndReadWarning(page)).toBe(true);
+  });
+
+  test("warnOnUnload: false skips the browser's warning", async ({ page }) => {
+    await visit(page, "/guard-page?draft");
+    await press(page, "Make changes");
+
+    expect(await closeAndReadWarning(page)).toBe(false);
   });
 });

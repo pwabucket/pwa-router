@@ -25,6 +25,8 @@ interface TabsRootProps {
   tabs: TabDefinition[];
   /** The tab at the bottom of the area: back from any other tab returns to it */
   defaultTab: string;
+  /** Put the tab roots under a page the app is first opened on, so back goes there first (default: true) */
+  deepLinkRoots?: boolean;
   children?: React.ReactNode;
 }
 
@@ -32,7 +34,13 @@ interface TabsRootProps {
 const EMPTY_SAVED = {};
 
 /** A tabbed area: every tab keeps its own steps, and only the active one is in history */
-const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
+const TabsRoot = ({
+  id,
+  tabs,
+  defaultTab,
+  deepLinkRoots = true,
+  children,
+}: TabsRootProps) => {
   const engine = useContext(TabsEngineContext)!;
   const parent = useContext(TabViewContext);
   const { resolvedLocation } = usePWARouting();
@@ -40,8 +48,8 @@ const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
 
   /* The area as registered with the engine, inside its parent tab when nested */
   const config = useMemo(
-    () => ({ id, tabs, defaultTab, parent }),
-    [id, tabs, defaultTab, parent],
+    () => ({ id, tabs, defaultTab, deepLinkRoots, parent }),
+    [id, tabs, defaultTab, deepLinkRoots, parent],
   );
 
   /* Register the area, and remove it on unmount */
@@ -70,7 +78,7 @@ const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
     [pathname, search, hash],
   );
 
-  /** Switches to a tab; the active one pops to its root */
+  /** Switches to a tab; the active one stays as it is */
   const select = useCallback(
     (tab: string) => queueTabsOp({ kind: "select", area: id, tab }),
     [queueTabsOp, id],

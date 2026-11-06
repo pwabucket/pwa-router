@@ -5,7 +5,7 @@ import { TabsContext } from "./TabsContext";
 interface TabsControls {
   /** The tab on show */
   active: string;
-  /** Switches to a tab; the active one pops to its root */
+  /** Switches to a tab; the active one stays as it is */
   select: (tab: string) => void;
   /** Pops the active tab to its root */
   popToRoot: () => void;

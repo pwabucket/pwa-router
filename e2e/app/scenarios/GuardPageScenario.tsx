@@ -3,16 +3,21 @@ import {
   Link,
   useLeaveGuard,
   useLocationState,
+  useLocation,
   useLocationToggle,
   useNavigateBack,
 } from "../../../src";
 
-/** A page with unsaved work that asks before it is left */
+/** A page with unsaved work that asks before it is left; ?draft skips the browser's warning */
 const GuardPageScenario = () => {
   const [isDirty, setDirty] = useState(false);
   const [isDialogOpen, setDialogOpen] = useLocationToggle("dialog");
   const [tab, setTab] = useLocationState("tab", "overview", { replace: true });
-  const { isBlocked, stay, leave } = useLeaveGuard({ when: isDirty });
+  const { search } = useLocation();
+  const { isBlocked, stay, leave } = useLeaveGuard({
+    when: isDirty,
+    warnOnUnload: !search.includes("draft"),
+  });
   const navigateBack = useNavigateBack();
 
   return (

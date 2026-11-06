@@ -200,9 +200,7 @@ export const planTabsOp = (
 ): TabsPlan | null => {
   switch (op.kind) {
     case "select":
-      if (op.tab === entry.area.active) {
-        return planPopToRoot(config, entry, memory, newStepId);
-      }
+      if (op.tab === entry.area.active) return null;
       return planSelect(config, entry, memory, op.tab, newStepId);
 
     case "popToRoot":

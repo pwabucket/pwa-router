@@ -22,16 +22,20 @@ const TABS = [
 
 /** The tab bar, outside every view */
 const TabBar = () => {
-  const { active, select } = useTabs();
+  const { active, select, popToRoot } = useTabs();
 
   return (
     <nav>
       {/* Status */}
       <p>Active {active}</p>
 
-      {/* Tabs */}
+      {/* Tabs: tapping the active one pops it to its root */}
       {TABS.map(({ id }) => (
-        <button key={id} type="button" onClick={() => select(id)}>
+        <button
+          key={id}
+          type="button"
+          onClick={() => (id === active ? popToRoot() : select(id))}
+        >
           {id} tab
         </button>
       ))}
