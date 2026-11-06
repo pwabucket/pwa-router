@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useLocationState } from "./useLocationState";
 import type { UseLocationStateOptions } from "./useSetLocationState";
-import type { SetLocationStateOptions } from "../utils/transaction";
+import type { SetLocationStateOptions } from "./useSetLocationState";
 
 /** Selects a tab */
 type SelectLocationTab<T> = (tab: T, options?: SetLocationStateOptions) => void;

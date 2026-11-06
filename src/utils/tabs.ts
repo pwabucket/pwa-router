@@ -1,6 +1,6 @@
 import type { Location } from "react-router";
 import { ROUTER_TABS } from "../constants";
-import { readLayers } from "./layers";
+import { readLayerKeys } from "../core/queries";
 import type { LocationState } from "./location";
 
 /** A tab of a tabbed area */
@@ -67,11 +67,11 @@ const writeTabsState = (tabs: TabsEntryState) => ({ [ROUTER_TABS]: tabs });
 
 /** The values of a state that belong to its page: no layers, no engine keys */
 const readPageState = (state: LocationState) => {
-  const layers = readLayers(state);
+  const layers = new Set(readLayerKeys(state));
   const pageState: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(state ?? {})) {
-    if (key.startsWith("__router_") || key in layers) continue;
+    if (key.startsWith("__router") || layers.has(key)) continue;
     pageState[key] = value;
   }
 
@@ -109,12 +109,6 @@ const pushPage = (tabs: TabsEntryState, page: TabPage, stamp: number) => {
     stamp,
   };
 };
-
-/** The entry holds layers pushed above its page */
-const hasLayersAbove = (state: LocationState, pageStamp: number) =>
-  Object.entries(readLayers(state)).some(
-    ([key, stamp]) => state?.[key] != null && stamp.latest > pageStamp,
-  );
 
 /** The tab whose root is the longest prefix of the pathname, or the default */
 const matchTab = (config: TabsConfig, pathname: string) => {
@@ -182,7 +176,6 @@ export {
   MAX_TAB_PAGES,
   TabsSession,
   capPages,
-  hasLayersAbove,
   pushPage,
   findTab,
   matchTab,

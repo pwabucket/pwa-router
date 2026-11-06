@@ -13,17 +13,21 @@ import {
   type TabsPlan,
   type TabsWrite,
 } from "../../utils/tabsPlan";
+import { readEntry } from "../../core/legacy";
+import { planChanges, type ValueChange } from "../../core/planChanges";
+import { createStepId } from "../../core/stepIds";
 import {
-  planTransaction,
-  type LocationStateChange,
-} from "../../utils/transaction";
-import { writeChanges, writeClose, writeTabsEntry } from "./historyWrites";
+  writeChanges,
+  writeClose,
+  writeLanding,
+  writeTabsEntry,
+} from "./historyWrites";
 
 /** Values on their way to the history, by key */
 type LocationStateOverlay = ReadonlyMap<string, unknown>;
 
 /** Queues a change; every change queued in one tick navigates once */
-type QueueLocationStateChange = (change: LocationStateChange) => void;
+type QueueLocationStateChange = (change: ValueChange) => void;
 
 /** Queues a tab operation; it runs before the location state changes */
 type QueueTabsOp = (op: TabsOp) => void;
@@ -72,7 +76,7 @@ const useLocationStateTransactions = (
   latestRef.current = { location, isCorrecting, navigate, tabsBinding };
 
   /* Queued work, work sent but not landed, and a tab write waiting for its close */
-  const queuedRef = useRef(new Map<string, LocationStateChange>());
+  const queuedRef = useRef(new Map<string, ValueChange>());
   const queuedTabsOpRef = useRef<TabsOp | null>(null);
   const tabsFollowUpRef = useRef<TabsWrite | null>(null);
   const inFlightRef = useRef<InFlightTransaction | null>(null);
@@ -105,7 +109,7 @@ const useLocationStateTransactions = (
 
       if (plan.landing !== undefined) {
         tabsFollowUpRef.current = plan.write ?? null;
-        writeClose(navigate, plan.landing, location);
+        writeLanding(navigate, plan.landing, location);
       } else if (plan.write) {
         writeTabsEntry(navigate, plan.write);
       }
@@ -178,26 +182,27 @@ const useLocationStateTransactions = (
       if (!queued.size) return;
 
       /* Plan against the current entry */
+      const entry = { key: location.key, ...readEntry(location.state) };
       let changes = [...queued.values()];
-      let plan = planTransaction(location.state, changes);
+      let plan = planChanges(entry, changes, createStepId);
       queued.clear();
 
-      if (plan.type === "none") return;
+      if (plan.kind === "none") return;
 
       /* A move leaving a guarded layer waits; its question opens instead */
-      const blockedGuardId = guards.findLeavingPlan(location.state, plan);
+      const blockedGuardId = guards.findLeavingPlan(entry, plan);
 
       if (blockedGuardId) {
         guards.block({ kind: "changes", guardId: blockedGuardId, changes });
         changes = [questionChange(blockedGuardId)];
-        plan = planTransaction(location.state, changes);
+        plan = planChanges(entry, changes, createStepId);
 
         /* The question is already open */
-        if (plan.type === "none") return;
+        if (plan.kind === "none") return;
       }
 
       /* A close sends only the closed keys; the rest follow once it lands */
-      if (plan.type === "close") {
+      if (plan.kind === "close") {
         for (const change of plan.followUps) queued.set(change.key, change);
 
         const closed = plan.keys.map((key): [string, unknown] => [
@@ -205,7 +210,7 @@ const useLocationStateTransactions = (
           undefined,
         ]);
         markSent(new Map(closed), location);
-        writeClose(navigate, plan.landing, location);
+        writeClose(navigate, plan.target, location);
         return;
       }
 

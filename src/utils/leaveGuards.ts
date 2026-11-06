@@ -1,10 +1,10 @@
 import type { Location } from "react-router";
 import { ROUTER_GUARD, ROUTER_TABS } from "../constants";
-import { readLayer } from "./layers";
-import type { LocationState } from "./location";
+import type { ChangesPlan, PlanEntry, ValueChange } from "../core/planChanges";
+import { readValuePosition } from "../core/queries";
 import type { TabsEntryState } from "./tabs";
 import type { TabsOp } from "./tabsPlan";
-import type { LocationStateChange, TransactionPlan } from "./transaction";
+
 
 /** A registered leave guard */
 interface LeaveGuard {
@@ -24,7 +24,7 @@ interface LeaveGuard {
 type BlockedAttempt =
   | { kind: "pop"; guardId: string; targetIndex: number }
   | { kind: "navigation"; guardId: string; location: Location }
-  | { kind: "changes"; guardId: string; changes: LocationStateChange[] }
+  | { kind: "changes"; guardId: string; changes: ValueChange[] }
   | { kind: "tabs"; guardId: string; op: TabsOp };
 
 /** The guard's scope holds the location: its tab, then its layer or page */
@@ -42,27 +42,24 @@ const isInside = (guard: LeaveGuard, location: Partial<Location>) => {
 const isActive = (guard: LeaveGuard) => guard.when && !guard.isLeaving;
 
 /** The plan unsets the guarded layer */
-const planLeavesLayer = (
-  state: LocationState,
-  plan: TransactionPlan,
-  key: string,
-) => {
-  if (state?.[key] == null) return false;
+const planLeavesLayer = (entry: PlanEntry, plan: ChangesPlan, key: string) => {
+  if (entry.state[key] == null) return false;
 
-  /* A close removes its keys and every layer pushed since its landing */
-  if (plan.type === "close") {
-    const latest = readLayer(state, key)?.latest;
-    const isAboveLanding =
-      plan.landing !== null && latest !== undefined && latest >= plan.landing;
-    return plan.keys.includes(key) || isAboveLanding;
+  /* A close removes its keys, and every layer pushed at or after its landing */
+  if (plan.kind === "close") {
+    if (plan.keys.includes(key)) return true;
+    if (plan.target.kind !== "land") return false;
+
+    const latest = readValuePosition(entry.record, key, "latest");
+    return latest !== undefined && latest >= plan.target.before;
   }
 
   /* A write clears it in place */
-  return plan.type === "write" && plan.state[key] == null;
+  return plan.kind === "write" && plan.state[key] == null;
 };
 
 /** The change opening (a guard id) or closing (undefined) the question layer */
-const questionChange = (guardId?: string): LocationStateChange => ({
+const questionChange = (guardId?: string): ValueChange => ({
   key: ROUTER_GUARD,
   value: guardId,
   persist: false,
@@ -162,10 +159,10 @@ class LeaveGuardRegistry {
   }
 
   /** The first active layer guard that a transaction plan leaves */
-  findLeavingPlan(state: LocationState, plan: TransactionPlan) {
+  findLeavingPlan(entry: PlanEntry, plan: ChangesPlan) {
     for (const [id, guard] of this.guards) {
       if (!guard.key || !isActive(guard)) continue;
-      if (planLeavesLayer(state, plan, guard.key)) return id;
+      if (planLeavesLayer(entry, plan, guard.key)) return id;
     }
     return undefined;
   }

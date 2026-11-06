@@ -188,6 +188,18 @@ describe("planChanges", () => {
     expect(plan.state.__router_from_position).toBe(-1);
   });
 
+  it("keeps the engine's other keys on the entries it writes", () => {
+    const plan = planChanges(
+      entry({ __router_tabs: { active: "search" }, __router_guard: "g" }),
+      [change("dialog", true)],
+      stepIds(),
+    );
+
+    if (plan.kind !== "write") throw new Error("expected a write");
+    expect(plan.state.__router_tabs).toEqual({ active: "search" });
+    expect(plan.state.__router_guard).toBe("g");
+  });
+
   it("drops the record of a value unset through options.state", () => {
     const record = rootRecord([step("a", 3)], { dialog: pushedValue("a") });
     const plan = planChanges(

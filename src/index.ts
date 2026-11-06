@@ -28,9 +28,9 @@ export type { UseLocationStateReturn } from "./hooks/useLocationState";
 export { useSetLocationState } from "./hooks/useSetLocationState";
 export type {
   SetLocationState,
+  SetLocationStateOptions,
   UseLocationStateOptions,
 } from "./hooks/useSetLocationState";
-export type { SetLocationStateOptions } from "./utils/transaction";
 
 export {
   useLocationToggle,

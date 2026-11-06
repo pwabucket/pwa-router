@@ -2,7 +2,7 @@ import { useCallback, useContext } from "react";
 import { LocationStateDefaultsContext } from "../contexts/LocationStateDefaultsContext";
 import { LocationStateTransactionsContext } from "../contexts/LocationStateTransactionsContext";
 import { warnLargeStateValue } from "../utils/stateSizeWarning";
-import type { SetLocationStateOptions } from "../utils/transaction";
+import type { ValueChangeOptions } from "../core/planChanges";
 
 interface UseLocationStateOptions {
   /** Keep the value after a page reload (default: true, or the section's default) */
@@ -12,6 +12,9 @@ interface UseLocationStateOptions {
   /** Update the current entry in place instead of pushing (default: false) */
   replace?: boolean;
 }
+
+/** Options for setting a location state value */
+type SetLocationStateOptions = ValueChangeOptions;
 
 /** Setter of a location state value */
 type SetLocationState<T> = (
@@ -49,4 +52,8 @@ const useSetLocationState = <T>(
 };
 
 export { useSetLocationState };
-export type { SetLocationState, UseLocationStateOptions };
+export type {
+  SetLocationState,
+  SetLocationStateOptions,
+  UseLocationStateOptions,
+};

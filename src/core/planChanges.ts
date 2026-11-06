@@ -1,9 +1,8 @@
 import type { NavigateOptions } from "react-router";
 import {
-  ROUTER_RECORD,
   innermostArea,
-  readAppValues,
   updateArea,
+  withoutRecord,
   writeRecord,
   type EntryRecord,
   type StepId,
@@ -132,9 +131,9 @@ const applyChanges = (
     options = { ...options, ...rest };
 
     /* The value with its state patch (public markers included, the record not) */
-    const { [ROUTER_RECORD]: ___, ...patch } =
-      (statePatch as Record<string, unknown> | undefined) ?? {};
-    Object.assign(nextValues, patch, { [change.key]: change.value });
+    Object.assign(nextValues, withoutRecord(statePatch), {
+      [change.key]: change.value,
+    });
 
     /* Its record: a push points at the pushed step, in place keeps its steps */
     const previous = nextRecords[change.key];
@@ -213,7 +212,7 @@ const planWrite = (
   changes: ValueChange[],
   newStepId: () => StepId,
 ): WritePlan => {
-  const values = readAppValues(entry.state);
+  const values = withoutRecord(entry.state);
 
   /* Values that add an entry, and values updated in place */
   const pushes = changes.filter(

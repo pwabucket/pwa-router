@@ -4,7 +4,7 @@ import {
   useSetLocationState,
   type UseLocationStateOptions,
 } from "./useSetLocationState";
-import type { SetLocationStateOptions } from "../utils/transaction";
+import type { SetLocationStateOptions } from "./useSetLocationState";
 
 /** Setter of a location toggle */
 type SetLocationToggle = (

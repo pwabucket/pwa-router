@@ -1,11 +1,13 @@
 import type { Location, NavigateFunction } from "react-router";
 import { routerState } from "../../constants";
+import { positionPushedStep, type WritePlan } from "../../core/planChanges";
+import { readRecord } from "../../core/record";
+import type { CloseTarget } from "../../core/steps";
 import { getLocationPath } from "../../utils/location";
 import type { TabsWrite } from "../../utils/tabsPlan";
-import { stampPushes, type WritePlan } from "../../utils/transaction";
 
-/** Goes back to before a stamp, skipping entries made since (iframes); null goes back one */
-const writeClose = (
+/** Goes back to before a position, skipping entries made since (iframes); null goes back one */
+const writeLanding = (
   navigate: NavigateFunction,
   landing: number | null,
   location: Location,
@@ -23,7 +25,22 @@ const writeClose = (
   }
 };
 
-/** Writes location state changes: in place first, then one push, stamped */
+/** Closes values: lands before their push, or goes back one when unrecorded */
+const writeClose = (
+  navigate: NavigateFunction,
+  target: CloseTarget,
+  location: Location,
+) => {
+  /* Virtual steps only exist in tabbed areas, which aren't on the core yet */
+  if (target.kind === "virtualPop") {
+    throw new Error("[pwa-router] Virtual steps need a tabbed area.");
+  }
+
+  const landing = target.kind === "land" ? target.before : null;
+  writeLanding(navigate, landing, location);
+};
+
+/** Writes location state changes: in place first, then one push, positioned once it lands */
 const writeChanges = (
   navigate: NavigateFunction,
   plan: WritePlan,
@@ -47,15 +64,15 @@ const writeChanges = (
     state: plan.state,
   });
 
-  /* Stamp the pushed values with the entry's place in history */
-  if (plan.pushedKeys.length) {
+  /* Give the pushed step its entry's place in history */
+  if (plan.position) {
     navigate(path, {
       ...plan.options,
       replace: true,
-      state: stampPushes(
-        location.state,
+      state: positionPushedStep(
         plan.state,
-        plan.pushedKeys,
+        readRecord(plan.state)!,
+        plan.position,
         window.history.length,
       ),
     });
@@ -77,4 +94,4 @@ const writeTabsEntry = (navigate: NavigateFunction, write: TabsWrite) => {
   }
 };
 
-export { writeChanges, writeClose, writeTabsEntry };
+export { writeChanges, writeClose, writeLanding, writeTabsEntry };

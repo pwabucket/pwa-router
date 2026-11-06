@@ -11,12 +11,6 @@ export const ROUTER_NAVIGATE_INDEX = "__router_navigate_index";
 export const ROUTER_GUARD = "__router_guard";
 /** The tabbed area data of an entry, written by the engine */
 export const ROUTER_TABS = "__router_tabs";
-/** Where each value was pushed, stamped by the engine */
-export const ROUTER_LAYERS = "__router_layers";
-/** Keys set with persist: false, discarded after a reload */
-export const ROUTER_EPHEMERAL_KEYS = "__router_ephemeral_keys";
-/** Keys set with inherit: false, dropped from entries pushed by other keys */
-export const ROUTER_NON_INHERITED_KEYS = "__router_non_inherited_keys";
 
 /** Root element attribute holding the engine's status, set by RouterStatusProbe */
 export const ROUTER_STATUS_ATTRIBUTE = "data-pwa-router-correcting";
@@ -40,14 +34,6 @@ export const navigateIndex = (value?: number) => ({
   [ROUTER_NAVIGATE_INDEX]: value,
 });
 
-export const ephemeralKeys = (value?: string[]) => ({
-  [ROUTER_EPHEMERAL_KEYS]: value,
-});
-
-export const nonInheritedKeys = (value?: string[]) => ({
-  [ROUTER_NON_INHERITED_KEYS]: value,
-});
-
 // ==============================
 // Composable Namespace (recommended)
 // ==============================
@@ -56,8 +42,6 @@ export const routerState = {
   from: fromPosition,
   destroy: destroyIndex,
   navigate: navigateIndex,
-  ephemeral: ephemeralKeys,
-  nonInherited: nonInheritedKeys,
 };
 
 /**

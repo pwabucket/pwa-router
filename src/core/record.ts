@@ -121,6 +121,13 @@ export const readAppValues = (state: unknown) => {
   return values;
 };
 
+/** A location state without the record; other keys stay */
+export const withoutRecord = (state: unknown) => {
+  const { [ROUTER_RECORD]: _, ...rest } =
+    (state as Record<string, unknown> | null | undefined) ?? {};
+  return rest;
+};
+
 /** An area of the record, by id */
 export const findArea = (record: EntryRecord, areaId: string) =>
   record.areas.find((area) => area.id === areaId);

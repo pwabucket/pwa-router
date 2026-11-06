@@ -1,7 +1,7 @@
 import type { Location, NavigateOptions, To } from "react-router";
+import { hasLayersAbove } from "../core/queries";
 import {
   findTab,
-  hasLayersAbove,
   matchTab,
   pageEntryState,
   pagePath,

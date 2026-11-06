@@ -30,12 +30,9 @@
 . Path
 . PathMatch
 . ROUTER_DESTROY_INDEX
-. ROUTER_EPHEMERAL_KEYS
 . ROUTER_FROM_POSITION
 . ROUTER_GUARD
-. ROUTER_LAYERS
 . ROUTER_NAVIGATE_INDEX
-. ROUTER_NON_INHERITED_KEYS
 . ROUTER_STATUS_ATTRIBUTE
 . ROUTER_TABS
 . Route
@@ -63,12 +60,10 @@
 . UseLocationToggleReturn
 . createSearchParams
 . destroyIndex
-. ephemeralKeys
 . fromPosition
 . generatePath
 . matchPath
 . navigateIndex
-. nonInheritedKeys
 . resolvePath
 . routerState
 . useBeforeUnload

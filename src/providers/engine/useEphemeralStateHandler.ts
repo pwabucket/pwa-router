@@ -5,13 +5,14 @@ import {
   type Location,
 } from "react-router";
 import { routerState } from "../../constants";
-import { readHistoryIndex } from "../../utils/history";
-import { readLayer } from "../../utils/layers";
-import { getLocationPath } from "../../utils/location";
+import { readEntry } from "../../core/legacy";
 import {
-  readEphemeralKeys,
-  removeEphemeralValues,
-} from "../../utils/ephemeralState";
+  readNonPersistentKeys,
+  readValuePosition,
+  removeValues,
+} from "../../core/queries";
+import { readHistoryIndex } from "../../utils/history";
+import { getLocationPath } from "../../utils/location";
 
 /** Discards ephemeral (persist: false) values restored after a reload */
 const useEphemeralStateHandler = (
@@ -38,25 +39,28 @@ const useEphemeralStateHandler = (
     // oxlint-disable-next-line react/refs
     !sessionEntryKeysRef.current.has(location.key);
 
-  const staleEphemeralKeys = isRestoredEntry
-    ? readEphemeralKeys(state).filter((key) => state[key] !== undefined)
-    : [];
-  const hasStaleEphemeralState = staleEphemeralKeys.length > 0;
+  /* The values a restored entry can't keep, and the earliest first push to return before */
+  const { staleEphemeralKeys, returnIndex } = useMemo(() => {
+    const keys = isRestoredEntry ? readNonPersistentKeys(state) : [];
+    const { record } = readEntry(state);
+    const positions = keys.map(
+      (key) => readValuePosition(record, key, "first") ?? Infinity,
+    );
 
-  /* Earliest first push to return before, Infinity when none was stamped */
-  const returnIndex = Math.min(
-    ...staleEphemeralKeys.map(
-      (key) => readLayer(state, key)?.start ?? Infinity,
-    ),
-  );
+    return { staleEphemeralKeys: keys, returnIndex: Math.min(...positions) };
+  }, [isRestoredEntry, state]);
+  const hasStaleEphemeralState = staleEphemeralKeys.length > 0;
 
   /* Hides stale values from hooks while the correction is pending */
   const sanitizedLocation = useMemo<Location>(
     () =>
       hasStaleEphemeralState
-        ? { ...location, state: removeEphemeralValues(location.state) }
+        ? {
+            ...location,
+            state: removeValues(location.state, staleEphemeralKeys),
+          }
         : location,
-    [hasStaleEphemeralState, location],
+    [hasStaleEphemeralState, location, staleEphemeralKeys],
   );
 
   useLayoutEffect(() => {

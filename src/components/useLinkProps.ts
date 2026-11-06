@@ -2,7 +2,7 @@ import { useCallback, useContext } from "react";
 import { useResolvedPath, type LinkProps } from "react-router";
 import { TabsEngineContext } from "../contexts/TabsEngineContext";
 import { usePWARouting } from "../hooks/usePWARouting";
-import { isNonInheritedEntry } from "../utils/nonInheritedState";
+import { isNonInheritedEntry } from "../core/queries";
 
 /** Props of this package's links, on top of React Router's */
 interface PWALinkOwnProps {

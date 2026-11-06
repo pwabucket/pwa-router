@@ -7,7 +7,7 @@ import {
 } from "react-router";
 import { TabsEngineContext } from "../contexts/TabsEngineContext";
 import { usePWARouting } from "./usePWARouting";
-import { isNonInheritedEntry } from "../utils/nonInheritedState";
+import { isNonInheritedEntry } from "../core/queries";
 
 /** Navigate options, plus leaving a tabbed area */
 interface PWANavigateOptions extends NavigateOptions {
