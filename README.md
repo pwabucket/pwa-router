@@ -144,7 +144,7 @@ const TabPane = ({ id, children }: { id: string; children: React.ReactNode }) =>
   ```tsx
   <Link to="/login" exitTabs replace>Log out</Link>
   ```
-- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address, or the default tab when none matches. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app. Pass `deepLinkRoots={false}` to `TabsRoot` to put nothing underneath.
+- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address, or the default tab when none matches. Roots match the way React Router matches routes: whole path segments, ignoring case. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app. Pass `deepLinkRoots={false}` to `TabsRoot` to put nothing underneath.
 - **A reload** keeps the active tab, its pages and layers, and every other tab's.
 
 ### How the history is kept

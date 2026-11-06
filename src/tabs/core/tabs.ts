@@ -1,4 +1,4 @@
-import type { Location } from "react-router";
+import { matchPath, type Location } from "react-router";
 import {
   type AreaRecord,
   type EntryRecord,
@@ -147,22 +147,20 @@ export const rootPageStep = (
   };
 };
 
-/** The tab whose root is the longest prefix of the pathname, or the default; tabs without a root never match */
+/** The tab whose root is the longest prefix of the pathname, matched like React Router's routes, or the default; tabs without a root never match */
 export const matchTab = (config: TabsConfig, pathname: string) => {
-  let match: { id: string; root: string } | undefined;
+  let match: { id: string; length: number } | undefined;
 
   for (const tab of config.tabs) {
     if (tab.root === undefined) continue;
 
-    /* The root as a prefix, without a trailing slash */
-    const root = tab.root.replace(/\/$/, "");
+    /* The root as a prefix of whole segments */
     const isPrefix =
-      pathname === tab.root ||
-      pathname === root ||
-      pathname.startsWith(`${root}/`);
+      matchPath({ path: tab.root, end: false }, pathname) !== null;
+    const length = tab.root.replace(/\/$/, "").length;
 
-    if (isPrefix && (!match || root.length > match.root.length)) {
-      match = { id: tab.id, root };
+    if (isPrefix && (!match || length > match.length)) {
+      match = { id: tab.id, length };
     }
   }
 
