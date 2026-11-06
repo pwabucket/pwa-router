@@ -3,12 +3,12 @@
 For people changing the router itself. The README covers using it.
 
 ## The model
-- **Every entry carries one engine record**, under the `__router` key of its history state (`src/core/record.ts`). App values stay top-level in `location.state`.
+- **Every entry carries one engine record**, under the `__router` key of its history state (`src/engine/core/record.ts`). App values stay top-level in `location.state`.
 - **An area** is a run of entries with one owner. The **root area** is the whole app. Each `TabsRoot` is a **tab area**, and a tab area inside a `TabView` is nested in that tab. The record lists the areas on the live path, outermost first. A tab area also records the address it was opened on, where its tabs without a `root` start.
 - **A step** is one entry's worth of an area: a `page` (a navigation) or a `layer` (a pushed location state value). A step is **real** (it has an entry, at a `position`: the history length right after its push) or **virtual** (kept only as a snapshot, after a tab was restored into one entry).
 - **Values point at steps**, not at positions: each value records its area, the step of its first push and of its latest push, and its `persist` / `inherit` flags.
-- **A step keeps a snapshot** (address, values and inner areas) once something is pushed above it in a tab area, and the current step when its tab is saved. A snapshot keeps every value but `persist: false` and `inherit: false` ones; a saved layer step whose own value is dropped goes with it (`saveSteps` in `src/core/steps.ts`).
-- **Restoring a tab collapses its steps** (`src/core/steps.ts`): the top step takes the new entry, the rest become virtual, and every area inside the restored step collapses the same way. Nothing is restamped.
+- **A step keeps a snapshot** (address, values and inner areas) once something is pushed above it in a tab area, and the current step when its tab is saved. A snapshot keeps every value but `persist: false` and `inherit: false` ones; a saved layer step whose own value is dropped goes with it (`saveSteps` in `src/engine/core/steps.ts`).
+- **Restoring a tab collapses its steps** (`src/engine/core/steps.ts`): the top step takes the new entry, the rest become virtual, and every area inside the restored step collapses the same way. Nothing is restamped.
 
 ## Two history operations
 - **Go to a step:**
@@ -18,17 +18,29 @@ For people changing the router itself. The README covers using it.
 
 Closing a value, swapping layers, switching tabs, popping a tab to its root, leaving a tab area, cleaning up after a reload and backing through a restored tab are all built from these two, plus in-place writes.
 
+## Where the code lives
+One folder per feature, each holding its components, hooks, contexts and engine parts:
+
+| Folder | Holds |
+| --- | --- |
+| `src/router/` | `PWARouter`, the provider wiring the engine, `Routes`, and the engine-aware location and navigation hooks |
+| `src/links/` | `Link`, `NavLink`, `Navigate` |
+| `src/layers/` | Location state hooks (`useLocationState`, toggles, tabs, popups) and their defaults |
+| `src/guards/` | `useLeaveGuard`, the guard registry and its decider |
+| `src/tabs/` | `TabsRoot`, `TabView`, `useTabs`, the tabs handler and decider; `core/` holds the pure tab planning |
+| `src/engine/` | The shared runtime: transactions, intent queue, busy state, watcher, history writes; `handlers/` holds the corrections; `core/` holds the pure record, steps and change planner |
+
 ## The pieces
 | Piece | File | Job |
 | --- | --- | --- |
-| Planners (pure) | `src/core/planChanges.ts`, `src/core/planTabs.ts` | Current record + requests → the operations to run |
-| Intent queue | `src/providers/engine/IntentQueue.ts` | Requests in order: an operation's finishing write, then a tab operation, then all value changes as one transaction |
-| Transactions | `src/providers/engine/useLocationStateTransactions.ts` | Takes intents, plans them, checks guards, sends them one landing at a time |
-| Busy state | `src/providers/engine/EngineWork.ts` | Work sent and not landed, and operations still running |
-| Watcher | `src/providers/engine/useMoveWatcher.ts` | Sees every user move and asks the deciders whether to undo it, keeping the screen on show |
-| Deciders | `src/providers/engine/deciders/` | Feature rules for undoing moves: guards ask first, then tabs show virtual steps |
-| Tabs handler | `src/providers/engine/useTabsHandler.ts` | Registers tab areas, records new pages, keeps each area's saved pages |
-| Reload cleanup | `src/providers/engine/useEphemeralStateHandler.ts` | Closes `persist: false` values restored by a reload |
+| Planners (pure) | `src/engine/core/planChanges.ts`, `src/tabs/core/planTabs.ts` | Current record + requests → the operations to run |
+| Intent queue | `src/engine/IntentQueue.ts` | Requests in order: an operation's finishing write, then a tab operation, then all value changes as one transaction |
+| Transactions | `src/engine/useLocationStateTransactions.ts` | Takes intents, plans them, checks guards, sends them one landing at a time |
+| Busy state | `src/engine/EngineWork.ts` | Work sent and not landed, and operations still running |
+| Watcher | `src/engine/useMoveWatcher.ts` | Sees every user move and asks the deciders whether to undo it, keeping the screen on show |
+| Deciders | `src/engine/moveDeciders.ts` (the contract), `src/guards/guardDecider.ts`, `src/tabs/virtualStepDecider.ts` | Feature rules for undoing moves: guards ask first, then tabs show virtual steps |
+| Tabs handler | `src/tabs/useTabsHandler.ts` | Registers tab areas, records new pages, keeps each area's saved steps |
+| Reload cleanup | `src/engine/handlers/useEphemeralStateHandler.ts` | Closes `persist: false` values restored by a reload |
 
 ## Rules that keep it correct
 - **One navigation at a time:** nothing is sent while work is in flight or the engine is correcting.

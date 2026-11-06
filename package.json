@@ -39,7 +39,7 @@
   },
   "scripts": {
     "prepublish": "rm -rf ./dist && npm run build",
-    "dev": "vite",
+    "dev": "vite --config e2e/vite.config.ts",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "typecheck:rr8": "tsc -p tsconfig.rr8.json --noEmit",
