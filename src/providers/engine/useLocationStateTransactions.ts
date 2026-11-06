@@ -1,5 +1,8 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, type Location } from "react-router";
+import { readEntry } from "../../core/legacy";
+import { planChanges, type ValueChange } from "../../core/planChanges";
+import { createStepId } from "../../core/stepIds";
 import {
   questionChange,
   type LeaveGuardRegistry,
@@ -11,11 +14,7 @@ import {
   type TabsMemory,
   type TabsOp,
   type TabsPlan,
-  type TabsWrite,
 } from "../../utils/tabsPlan";
-import { readEntry } from "../../core/legacy";
-import { planChanges, type ValueChange } from "../../core/planChanges";
-import { createStepId } from "../../core/stepIds";
 import type { EngineWork } from "./EngineWork";
 import {
   writeChanges,
@@ -23,6 +22,7 @@ import {
   writeLanding,
   writeTabsEntry,
 } from "./historyWrites";
+import { IntentQueue } from "./IntentQueue";
 
 /** Values on their way to the history, by key */
 type LocationStateOverlay = ReadonlyMap<string, unknown>;
@@ -49,7 +49,7 @@ type ShowLocation = (
 /** An empty overlay */
 const EMPTY_OVERLAY: LocationStateOverlay = new Map();
 
-/** Runs location state changes and tab operations as transactions, one navigation at a time */
+/** Runs queued intents (value changes and tab operations) one navigation at a time */
 const useLocationStateTransactions = (
   location: Location,
   isCorrecting: boolean,
@@ -68,17 +68,15 @@ const useLocationStateTransactions = (
   // oxlint-disable-next-line react/refs
   latestRef.current = { location, isCorrecting, navigate, tabsBinding };
 
-  /* Queued work, the values of sent work, and a tab write waiting for its close */
-  const queuedRef = useRef(new Map<string, ValueChange>());
-  const queuedTabsOpRef = useRef<TabsOp | null>(null);
-  const tabsFollowUpRef = useRef<TabsWrite | null>(null);
+  /* Queued intents, and the values of the work in flight */
+  const intentsRef = useRef(new IntentQueue());
   const sentValuesRef = useRef<Map<string, unknown> | null>(null);
   const isFlushScheduledRef = useRef(false);
 
   /** Publishes the values on their way: queued ones over in-flight ones */
   const publishOverlay = useCallback(() => {
     const values = new Map(sentValuesRef.current);
-    for (const [key, change] of queuedRef.current) {
+    for (const [key, change] of intentsRef.current.queuedChanges) {
       values.set(key, change.value);
     }
     setOverlay(values.size ? values : EMPTY_OVERLAY);
@@ -100,7 +98,7 @@ const useLocationStateTransactions = (
     showLocation(() => null);
   }, [work, showLocation]);
 
-  /** Runs a tab plan: its close, or its write when there is nothing to close */
+  /** Runs a tab plan: its close (its write continues once it lands), or its write alone */
   const runTabsPlan = useCallback(
     (plan: TabsPlan, location: Location) => {
       const { navigate } = latestRef.current;
@@ -108,7 +106,7 @@ const useLocationStateTransactions = (
       markSent(new Map(), location);
 
       if (plan.landing !== undefined) {
-        tabsFollowUpRef.current = plan.write ?? null;
+        if (plan.write) intentsRef.current.continueWith(plan.write);
         writeLanding(navigate, plan.landing, location);
       } else if (plan.write) {
         writeTabsEntry(navigate, plan.write);
@@ -127,24 +125,10 @@ const useLocationStateTransactions = (
     [guards],
   );
 
-  /** Sends the queued tab operation; false when there is none to send */
+  /** Sends a tab operation; false when nothing was sent */
   const sendTabsOp = useCallback(
-    (location: Location) => {
-      const { navigate, tabsBinding } = latestRef.current;
-      const { config, tabs, memory, reset } = tabsBinding;
-
-      /* A close has landed: write the tab's entry */
-      const followUp = tabsFollowUpRef.current;
-      if (followUp) {
-        tabsFollowUpRef.current = null;
-        markSent(new Map(), location);
-        writeTabsEntry(navigate, followUp);
-        return true;
-      }
-
-      const op = queuedTabsOpRef.current;
-      queuedTabsOpRef.current = null;
-      if (!op) return false;
+    (op: TabsOp, location: Location) => {
+      const { config, tabs, memory, reset } = latestRef.current.tabsBinding;
 
       /* Nothing to do: the operation is over */
       const plan =
@@ -160,7 +144,7 @@ const useLocationStateTransactions = (
       if (blockedGuardId) {
         const question = questionChange(blockedGuardId);
         guards.block({ kind: "tabs", guardId: blockedGuardId, op });
-        queuedRef.current.set(question.key, question);
+        intentsRef.current.queueChange(question, undefined);
         endTabsOp();
         return false;
       }
@@ -171,23 +155,20 @@ const useLocationStateTransactions = (
       runTabsPlan(plan, location);
       return true;
     },
-    [findTabsBlocker, guards, markSent, runTabsPlan, endTabsOp],
+    [endTabsOp, findTabsBlocker, guards, runTabsPlan],
   );
 
-  /** Sends every queued change as one transaction, when nothing is in flight */
+  /** Sends value changes as one transaction; false when nothing was sent */
   const sendChanges = useCallback(
-    (location: Location) => {
+    (queued: ValueChange[], location: Location) => {
       const { navigate } = latestRef.current;
-      const queued = queuedRef.current;
-      if (!queued.size) return;
 
       /* Plan against the current entry */
       const entry = { key: location.key, ...readEntry(location.state) };
-      let changes = [...queued.values()];
+      let changes = queued;
       let plan = planChanges(entry, changes, createStepId);
-      queued.clear();
 
-      if (plan.kind === "none") return;
+      if (plan.kind === "none") return false;
 
       /* A move leaving a guarded layer waits; its question opens instead */
       const blockedGuardId = guards.findLeavingPlan(entry, plan);
@@ -198,12 +179,12 @@ const useLocationStateTransactions = (
         plan = planChanges(entry, changes, createStepId);
 
         /* The question is already open */
-        if (plan.kind === "none") return;
+        if (plan.kind === "none") return false;
       }
 
       /* A close sends only the closed keys; the rest follow once it lands */
       if (plan.kind === "close") {
-        for (const change of plan.followUps) queued.set(change.key, change);
+        intentsRef.current.requeueChanges(plan.followUps);
 
         const closed = plan.keys.map((key): [string, unknown] => [
           key,
@@ -211,7 +192,7 @@ const useLocationStateTransactions = (
         ]);
         markSent(new Map(closed), location);
         writeClose(navigate, plan.target, location);
-        return;
+        return true;
       }
 
       /* A write sends every change */
@@ -221,19 +202,36 @@ const useLocationStateTransactions = (
       ]);
       markSent(new Map(written), location);
       writeChanges(navigate, plan, location);
+      return true;
     },
     [guards, markSent],
   );
 
-  /** Sends the next piece of work, when nothing is in flight */
+  /** Sends intents in order until one navigates, when nothing is in flight */
   const send = useCallback(() => {
-    const { location, isCorrecting } = latestRef.current;
+    const { location, isCorrecting, navigate } = latestRef.current;
     if (work.isSent || isCorrecting) return;
 
-    /* Tab operations go first */
-    if (sendTabsOp(location)) return;
-    sendChanges(location);
-  }, [sendTabsOp, sendChanges, work]);
+    for (
+      let intent = intentsRef.current.takeNext();
+      intent;
+      intent = intentsRef.current.takeNext()
+    ) {
+      /* A running operation's finishing write */
+      if (intent.kind === "continue") {
+        markSent(new Map(), location);
+        writeTabsEntry(navigate, intent.write);
+        return;
+      }
+
+      const isSent =
+        intent.kind === "tabs"
+          ? sendTabsOp(intent.op, location)
+          : sendChanges(intent.changes, location);
+
+      if (isSent) return;
+    }
+  }, [work, markSent, sendTabsOp, sendChanges]);
 
   /** Sends what it can and shows every value on its way */
   const flush = useCallback(() => {
@@ -261,23 +259,20 @@ const useLocationStateTransactions = (
     const questionGuardId = guards.takePendingQuestion();
 
     if (questionGuardId) {
-      const change = questionChange(questionGuardId);
-      queuedRef.current.set(change.key, change);
+      const question = questionChange(questionGuardId);
+      intentsRef.current.queueChange(question, undefined);
     }
 
     flush();
 
     /* A tab operation is done once nothing of it is left */
-    const isTabsOpDone =
-      !work.isSent && !tabsFollowUpRef.current && !queuedTabsOpRef.current;
-
+    const isTabsOpDone = !work.isSent && !intentsRef.current.hasTabsWork;
     if (isTabsOpDone && work.isOperating) endTabsOp();
   }, [location.key, isCorrecting, flush, guards, work, endTabsOp]);
 
   /** Queues a change; changes in one tick share one flush, which shows them */
   const queueChange = useCallback<QueueLocationStateChange>(
     (change) => {
-      const queued = queuedRef.current;
       const sentValues = sentValuesRef.current;
 
       /* The value the key has, or is on its way to */
@@ -285,10 +280,7 @@ const useLocationStateTransactions = (
         ? sentValues.get(change.key)
         : latestRef.current.location.state?.[change.key];
 
-      /* Setting the value it has, or is on its way to, cancels the queued one */
-      if (Object.is(change.value, baseValue)) queued.delete(change.key);
-      else queued.set(change.key, change);
-
+      intentsRef.current.queueChange(change, baseValue);
       scheduleFlush();
     },
     [scheduleFlush],
@@ -299,7 +291,7 @@ const useLocationStateTransactions = (
     (op) => {
       /* The screen stays on the location from before the first pending operation */
       const { location } = latestRef.current;
-      queuedTabsOpRef.current = op;
+      intentsRef.current.queueTabsOp(op);
       setPendingTabsOp(op);
       showLocation((shown) => shown ?? location);
       scheduleFlush();
