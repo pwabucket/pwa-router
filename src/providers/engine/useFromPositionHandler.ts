@@ -6,6 +6,7 @@ import {
   type NavigateOptions,
 } from "react-router";
 import { ROUTER_FROM_POSITION, routerState } from "../../constants";
+import type { ShowLocation } from "./useLocationStateTransactions";
 
 /** Location to re-apply once the history is back at the requested position */
 interface PendingNavigation {
@@ -17,6 +18,7 @@ interface PendingNavigation {
 const useFromPositionHandler = (
   location: Location,
   tryLock: () => boolean,
+  showLocation: ShowLocation,
 ) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
@@ -28,16 +30,27 @@ const useFromPositionHandler = (
   useLayoutEffect(() => {
     if (fromPosition === undefined || !tryLock()) return;
 
+    /* The location to re-apply, shown while the history goes back */
+    const target = {
+      ...location,
+      state: { ...location.state, ...routerState.from(undefined) },
+    };
+
     // oxlint-disable-next-line react/set-state-in-effect
     setPendingNavigation({
-      location: {
-        ...location,
-        state: { ...location.state, ...routerState.from(undefined) },
-      },
+      location: target,
       options: { replace: navigationType === "REPLACE", flushSync: true },
     });
+    showLocation((shown) => shown ?? target);
     navigate(fromPosition);
-  }, [fromPosition, location, navigationType, navigate, tryLock]);
+  }, [
+    fromPosition,
+    location,
+    navigationType,
+    navigate,
+    tryLock,
+    showLocation,
+  ]);
 
   return [pendingNavigation, setPendingNavigation] as const;
 };

@@ -77,19 +77,6 @@ class LeaveGuardRegistry {
   /** A guard whose question opens once the history is restored */
   private pendingQuestion: string | null = null;
 
-  /** The engine is sending a transaction; its moves are checked beforehand */
-  private sending = false;
-
-  /** The engine is sending a transaction */
-  get isSending() {
-    return this.sending;
-  }
-
-  /** Marks whether the engine is sending a transaction */
-  setSending(sending: boolean) {
-    this.sending = sending;
-  }
-
   /** Records a blocked move */
   block(attempt: BlockedAttempt) {
     this.attempt = attempt;

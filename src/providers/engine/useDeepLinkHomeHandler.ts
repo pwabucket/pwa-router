@@ -3,6 +3,7 @@ import { useNavigate, type Location, type To } from "react-router";
 import { readHistoryIndex } from "../../utils/history";
 import { getLocationPath } from "../../utils/location";
 import type { TabsConfig, TabsEntryState } from "../../utils/tabs";
+import type { EngineWork } from "./EngineWork";
 import { planBackfill } from "../../utils/tabsPlan";
 
 /** Events that give the page a user activation */
@@ -55,28 +56,16 @@ const useDeepLinkHomeHandler = (
   location: Location,
   isCorrecting: boolean,
   tabs: DeepLinkTabs,
-  holdUntilLanding: () => void,
+  work: EngineWork,
 ) => {
   const navigate = useNavigate();
   const hasTabs = tabs.config !== null;
 
   /* The latest inputs, read on activation */
-  const latestRef = useRef({
-    location,
-    isCorrecting,
-    navigate,
-    tabs,
-    holdUntilLanding,
-  });
+  const latestRef = useRef({ location, isCorrecting, navigate, tabs });
 
   // oxlint-disable-next-line react/refs
-  latestRef.current = {
-    location,
-    isCorrecting,
-    navigate,
-    tabs,
-    holdUntilLanding,
-  };
+  latestRef.current = { location, isCorrecting, navigate, tabs };
 
   useEffect(() => {
     if (!homePath && !hasTabs) return;
@@ -84,8 +73,7 @@ const useDeepLinkHomeHandler = (
 
     /** Writes the entries below the page, during the user's first activation */
     const backfill = () => {
-      const { location, isCorrecting, navigate, tabs, holdUntilLanding } =
-        latestRef.current;
+      const { location, isCorrecting, navigate, tabs } = latestRef.current;
       if (isCorrecting) return;
 
       removeListeners();
@@ -93,7 +81,7 @@ const useDeepLinkHomeHandler = (
       if (!entries) return;
 
       /* Work queued by this activation waits for the new entries */
-      holdUntilLanding();
+      work.send(location.key);
 
       /* The first entry becomes the lowest page; the rest are pushed */
       const [first, ...rest] = entries;
@@ -114,7 +102,7 @@ const useDeepLinkHomeHandler = (
     }
 
     return removeListeners;
-  }, [homePath, hasTabs]);
+  }, [homePath, hasTabs, work]);
 };
 
 export { useDeepLinkHomeHandler };

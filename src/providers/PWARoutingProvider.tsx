@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, type Location } from "react-router";
 
 import {
   ROUTER_DESTROY_INDEX,
@@ -12,7 +12,7 @@ import { PWARoutingContext } from "../contexts/PWARoutingContext";
 import { TabsEngineContext } from "../contexts/TabsEngineContext";
 import { LeaveGuardRegistry } from "../utils/leaveGuards";
 import { applyOverlay } from "../utils/overlay";
-import { TabsSession } from "../utils/tabs";
+import { EngineWork } from "./engine/EngineWork";
 import { useCorrectionLock } from "./engine/useCorrectionLock";
 import { useDeepLinkHomeHandler } from "./engine/useDeepLinkHomeHandler";
 import { useDestroyIndexHandler } from "./engine/useDestroyIndexHandler";
@@ -38,7 +38,10 @@ const PWARoutingProvider = ({
   const location = useLocation();
   const tryLock = useCorrectionLock(location.key);
   const [guards] = useState(() => new LeaveGuardRegistry());
-  const [tabsSession] = useState(() => new TabsSession());
+  const [work] = useState(() => new EngineWork());
+
+  /* The location kept on show while the engine crosses other entries */
+  const [shownLocation, showLocation] = useState<Location | null>(null);
 
   /* Handlers run in call order, which is their priority */
   const { sanitizedLocation, hasStaleEphemeralState } =
@@ -53,6 +56,7 @@ const PWARoutingProvider = ({
   const [pendingNavigation, setPendingNavigation] = useFromPositionHandler(
     location,
     tryLockAfterEphemeralCleanup,
+    showLocation,
   );
   useDestroyIndexHandler(location, tryLockAfterEphemeralCleanup);
   useNavigateIndexHandler(location, tryLockAfterEphemeralCleanup);
@@ -60,6 +64,7 @@ const PWARoutingProvider = ({
     pendingNavigation,
     setPendingNavigation,
     tryLockAfterEphemeralCleanup,
+    showLocation,
   );
 
   /* A correction is pending or in flight on the current entry */
@@ -74,6 +79,7 @@ const PWARoutingProvider = ({
   const { frozenLocation, isReverting } = useUndoMoveHandler(
     location,
     guards,
+    work,
     hasCorrection,
     tryLockAfterEphemeralCleanup,
   );
@@ -81,26 +87,21 @@ const PWARoutingProvider = ({
   /* Every entry of a tabbed area carries its tabs data */
   const tabsHandler = useTabsHandler(
     location,
-    tabsSession,
+    work,
     hasCorrection || isReverting,
     tryLockAfterEphemeralCleanup,
   );
   const isCorrecting = hasCorrection || isReverting || tabsHandler.isCorrecting;
 
   /* Location state changes and tab operations run as transactions over the history */
-  const {
-    overlay,
-    pendingTab,
-    tabsFrozenLocation,
-    queueChange,
-    queueTabsOp,
-    holdUntilLanding,
-  } = useLocationStateTransactions(
+  const { overlay, pendingTab, queueChange, queueTabsOp } =
+    useLocationStateTransactions(
       location,
       isCorrecting,
       guards,
       tabsHandler.engine,
-      tabsSession,
+      work,
+      showLocation,
     );
 
   /* Home (or a tab's roots) go under an inner page the app was first opened on */
@@ -109,7 +110,7 @@ const PWARoutingProvider = ({
     location,
     isCorrecting,
     tabsHandler.engine,
-    holdUntilLanding,
+    work,
   );
 
   /* The tabs engine for TabsRoot */
@@ -119,11 +120,7 @@ const PWARoutingProvider = ({
   );
 
   /* The location the engine is settling on */
-  const settlingLocation =
-    frozenLocation ??
-    tabsFrozenLocation ??
-    pendingNavigation?.location ??
-    sanitizedLocation;
+  const settlingLocation = frozenLocation ?? shownLocation ?? sanitizedLocation;
 
   /** Pass to <Routes>: the settling location with the values on their way */
   const resolvedLocation = useMemo(

@@ -7,6 +7,7 @@ import {
 import { ROUTER_TABS } from "../../constants";
 import { readHistoryIndex } from "../../utils/history";
 import type { LeaveGuardRegistry } from "../../utils/leaveGuards";
+import type { EngineWork } from "./EngineWork";
 import { getLocationPath, type LocationState } from "../../utils/location";
 import {
   pageEntryState,
@@ -50,6 +51,7 @@ const readVirtualSlot = (state: LocationState) => {
 const useUndoMoveHandler = (
   location: Location,
   guards: LeaveGuardRegistry,
+  work: EngineWork,
   isCorrecting: boolean,
   tryLock: () => boolean,
 ) => {
@@ -65,7 +67,7 @@ const useUndoMoveHandler = (
   const index = readHistoryIndex();
   const isFinishedMove =
     location.key !== settled.location.key && !revert && !isCorrecting;
-  const isUserMove = isFinishedMove && !guards.isSending;
+  const isUserMove = isFinishedMove && !work.isBusy;
 
   /* A move leaving a guard asks first */
   const leavingGuardId = isUserMove

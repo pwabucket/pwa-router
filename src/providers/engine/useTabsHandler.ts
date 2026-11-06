@@ -17,9 +17,9 @@ import {
   writeTabsState,
   type TabsConfig,
   type TabsEntryState,
-  type TabsSession,
 } from "../../utils/tabs";
 import { adoptTabs, settleMemory, type TabsMemory } from "../../utils/tabsPlan";
+import type { EngineWork } from "./EngineWork";
 
 /** A settled entry of the tabbed area and its tabs data */
 interface TrackedTabsEntry {
@@ -33,7 +33,7 @@ const EMPTY_MEMORY: TabsMemory = { version: 0, saved: {} };
 /** Keeps every entry of a registered tabbed area carrying its tabs data */
 const useTabsHandler = (
   location: Location,
-  session: TabsSession,
+  work: EngineWork,
   isCorrecting: boolean,
   tryLock: () => boolean,
 ) => {
@@ -50,7 +50,7 @@ const useTabsHandler = (
   const entryTabs = config
     ? readTabsState(location.state, config.id)
     : undefined;
-  const canWrite = config !== null && !isCorrecting && !session.isOpPending;
+  const canWrite = config !== null && !isCorrecting && !work.isOperating;
 
   /* A new entry of the area without tabs data takes them (a page push, a replace, a new area) */
   const adoptedTabs = useMemo(

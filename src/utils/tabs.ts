@@ -157,24 +157,8 @@ const pagePath = ({ pathname, search, hash }: TabPage) => ({
   hash,
 });
 
-/** Engine flags shared by the tabs handler and the transactions */
-class TabsSession {
-  private opPending = false;
-
-  /** A tab operation is on its way through the history */
-  get isOpPending() {
-    return this.opPending;
-  }
-
-  /** Marks whether a tab operation is on its way */
-  setOpPending(opPending: boolean) {
-    this.opPending = opPending;
-  }
-}
-
 export {
   MAX_TAB_PAGES,
-  TabsSession,
   capPages,
   pushPage,
   findTab,

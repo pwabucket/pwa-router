@@ -4,7 +4,7 @@ import {
   questionChange,
   type LeaveGuardRegistry,
 } from "../../utils/leaveGuards";
-import type { TabsConfig, TabsEntryState, TabsSession } from "../../utils/tabs";
+import type { TabsConfig, TabsEntryState } from "../../utils/tabs";
 import {
   planTabsOp,
   readWriteLocation,
@@ -16,6 +16,7 @@ import {
 import { readEntry } from "../../core/legacy";
 import { planChanges, type ValueChange } from "../../core/planChanges";
 import { createStepId } from "../../core/stepIds";
+import type { EngineWork } from "./EngineWork";
 import {
   writeChanges,
   writeClose,
@@ -40,17 +41,10 @@ interface TabsBinding {
   reset: () => void;
 }
 
-/** Changes sent to the history and the entry they were sent from */
-interface InFlightTransaction {
-  values: Map<string, unknown>;
-  locationKey: string;
-}
-
-/** A tab operation and the location it started from, kept on show until it lands */
-interface PendingTabsOp {
-  op: TabsOp;
-  from: Location;
-}
+/** Sets the location kept on show while the engine crosses other entries */
+type ShowLocation = (
+  update: (shown: Location | null) => Location | null,
+) => void;
 
 /** An empty overlay */
 const EMPTY_OVERLAY: LocationStateOverlay = new Map();
@@ -61,13 +55,12 @@ const useLocationStateTransactions = (
   isCorrecting: boolean,
   guards: LeaveGuardRegistry,
   tabsBinding: TabsBinding,
-  tabsSession: TabsSession,
+  work: EngineWork,
+  showLocation: ShowLocation,
 ) => {
   const navigate = useNavigate();
   const [overlay, setOverlay] = useState(EMPTY_OVERLAY);
-  const [pendingTabsOp, setPendingTabsOp] = useState<PendingTabsOp | null>(
-    null,
-  );
+  const [pendingTabsOp, setPendingTabsOp] = useState<TabsOp | null>(null);
 
   /* The latest inputs, read when flushing */
   const latestRef = useRef({ location, isCorrecting, navigate, tabsBinding });
@@ -75,36 +68,43 @@ const useLocationStateTransactions = (
   // oxlint-disable-next-line react/refs
   latestRef.current = { location, isCorrecting, navigate, tabsBinding };
 
-  /* Queued work, work sent but not landed, and a tab write waiting for its close */
+  /* Queued work, the values of sent work, and a tab write waiting for its close */
   const queuedRef = useRef(new Map<string, ValueChange>());
   const queuedTabsOpRef = useRef<TabsOp | null>(null);
   const tabsFollowUpRef = useRef<TabsWrite | null>(null);
-  const inFlightRef = useRef<InFlightTransaction | null>(null);
+  const sentValuesRef = useRef<Map<string, unknown> | null>(null);
   const isFlushScheduledRef = useRef(false);
 
   /** Publishes the values on their way: queued ones over in-flight ones */
   const publishOverlay = useCallback(() => {
-    const values = new Map(inFlightRef.current?.values);
+    const values = new Map(sentValuesRef.current);
     for (const [key, change] of queuedRef.current) {
       values.set(key, change.value);
     }
     setOverlay(values.size ? values : EMPTY_OVERLAY);
   }, []);
 
-  /** Marks work as sent from the given entry */
+  /** Marks work as sent from the given entry, with the values it carries */
   const markSent = useCallback(
     (values: Map<string, unknown>, location: Location) => {
-      inFlightRef.current = { values, locationKey: location.key };
-      guards.setSending(true);
+      sentValuesRef.current = values;
+      work.send(location.key);
     },
-    [guards],
+    [work],
   );
+
+  /** Ends the running tab operation and releases the location on show */
+  const endTabsOp = useCallback(() => {
+    work.setOperating(false);
+    setPendingTabsOp(null);
+    showLocation(() => null);
+  }, [work, showLocation]);
 
   /** Runs a tab plan: its close, or its write when there is nothing to close */
   const runTabsPlan = useCallback(
     (plan: TabsPlan, location: Location) => {
       const { navigate } = latestRef.current;
-      tabsSession.setOpPending(true);
+      work.setOperating(true);
       markSent(new Map(), location);
 
       if (plan.landing !== undefined) {
@@ -114,7 +114,7 @@ const useLocationStateTransactions = (
         writeTabsEntry(navigate, plan.write);
       }
     },
-    [markSent, tabsSession],
+    [markSent, work],
   );
 
   /** The guard a tab plan would leave, if any */
@@ -150,7 +150,7 @@ const useLocationStateTransactions = (
       const plan =
         config && tabs && planTabsOp(op, config, location, tabs, memory);
       if (!plan) {
-        setPendingTabsOp(null);
+        endTabsOp();
         return false;
       }
 
@@ -161,7 +161,7 @@ const useLocationStateTransactions = (
         const question = questionChange(blockedGuardId);
         guards.block({ kind: "tabs", guardId: blockedGuardId, op });
         queuedRef.current.set(question.key, question);
-        setPendingTabsOp(null);
+        endTabsOp();
         return false;
       }
 
@@ -171,7 +171,7 @@ const useLocationStateTransactions = (
       runTabsPlan(plan, location);
       return true;
     },
-    [findTabsBlocker, guards, markSent, runTabsPlan],
+    [findTabsBlocker, guards, markSent, runTabsPlan, endTabsOp],
   );
 
   /** Sends every queued change as one transaction, when nothing is in flight */
@@ -228,12 +228,12 @@ const useLocationStateTransactions = (
   /** Sends the next piece of work, when nothing is in flight */
   const send = useCallback(() => {
     const { location, isCorrecting } = latestRef.current;
-    if (inFlightRef.current || isCorrecting) return;
+    if (work.isSent || isCorrecting) return;
 
     /* Tab operations go first */
     if (sendTabsOp(location)) return;
     sendChanges(location);
-  }, [sendTabsOp, sendChanges]);
+  }, [sendTabsOp, sendChanges, work]);
 
   /** Sends what it can and shows every value on its way */
   const flush = useCallback(() => {
@@ -252,12 +252,10 @@ const useLocationStateTransactions = (
   /* A new location with the engine idle means the work landed */
   useLayoutEffect(() => {
     if (isCorrecting) return;
+    if (work.isSent && !work.hasLanded(location.key)) return;
 
-    const inFlight = inFlightRef.current;
-    if (inFlight?.locationKey === location.key) return;
-
-    inFlightRef.current = null;
-    guards.setSending(false);
+    sentValuesRef.current = null;
+    work.land();
 
     /* Ask the question of a guard whose blocked move was undone */
     const questionGuardId = guards.takePendingQuestion();
@@ -271,26 +269,20 @@ const useLocationStateTransactions = (
 
     /* A tab operation is done once nothing of it is left */
     const isTabsOpDone =
-      !inFlightRef.current &&
-      !tabsFollowUpRef.current &&
-      !queuedTabsOpRef.current;
+      !work.isSent && !tabsFollowUpRef.current && !queuedTabsOpRef.current;
 
-    if (isTabsOpDone && tabsSession.isOpPending) {
-      tabsSession.setOpPending(false);
-      // oxlint-disable-next-line react/set-state-in-effect
-      setPendingTabsOp(null);
-    }
-  }, [location.key, isCorrecting, flush, guards, tabsSession]);
+    if (isTabsOpDone && work.isOperating) endTabsOp();
+  }, [location.key, isCorrecting, flush, guards, work, endTabsOp]);
 
   /** Queues a change; changes in one tick share one flush, which shows them */
   const queueChange = useCallback<QueueLocationStateChange>(
     (change) => {
       const queued = queuedRef.current;
-      const inFlight = inFlightRef.current;
+      const sentValues = sentValuesRef.current;
 
       /* The value the key has, or is on its way to */
-      const baseValue = inFlight?.values.has(change.key)
-        ? inFlight.values.get(change.key)
+      const baseValue = sentValues?.has(change.key)
+        ? sentValues.get(change.key)
         : latestRef.current.location.state?.[change.key];
 
       /* Setting the value it has, or is on its way to, cancels the queued one */
@@ -308,32 +300,18 @@ const useLocationStateTransactions = (
       /* The screen stays on the location from before the first pending operation */
       const { location } = latestRef.current;
       queuedTabsOpRef.current = op;
-      setPendingTabsOp((pending) => ({ op, from: pending?.from ?? location }));
+      setPendingTabsOp(op);
+      showLocation((shown) => shown ?? location);
       scheduleFlush();
     },
-    [scheduleFlush],
+    [scheduleFlush, showLocation],
   );
 
-  /** Holds every queued piece of work until the next location lands */
-  const holdUntilLanding = useCallback(() => {
-    markSent(new Map(), latestRef.current.location);
-  }, [markSent]);
-
   /* The tab being switched to, shown at once */
-  const pendingOp = pendingTabsOp?.op;
-  const pendingTab = pendingOp?.kind === "select" ? pendingOp.tab : null;
+  const pendingTab =
+    pendingTabsOp?.kind === "select" ? pendingTabsOp.tab : null;
 
-  /* The location kept on show while a tab operation crosses other entries */
-  const tabsFrozenLocation = pendingTabsOp?.from;
-
-  return {
-    overlay,
-    pendingTab,
-    tabsFrozenLocation,
-    queueChange,
-    queueTabsOp,
-    holdUntilLanding,
-  };
+  return { overlay, pendingTab, queueChange, queueTabsOp };
 };
 
 export { useLocationStateTransactions };
@@ -341,5 +319,6 @@ export type {
   LocationStateOverlay,
   QueueLocationStateChange,
   QueueTabsOp,
+  ShowLocation,
   TabsBinding,
 };
