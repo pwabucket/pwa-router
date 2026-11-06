@@ -123,7 +123,7 @@ const TabBar = () => {
 
 ### How it behaves
 
-- **Back inside a tab** goes through that tab's pages.
+- **Back inside a tab** goes through that tab's pages and the layers opened on them.
 - **Back from a tab's first page** goes to the default tab, where you left it. Back from the default tab's first page leaves the tab area.
 - **Switching tabs** shows the tab where you left it, and never builds up history.
 - **Tapping the active tab** pops it to its first page.
@@ -134,7 +134,7 @@ const TabBar = () => {
   <Link to="/login" exitTabs replace>Log out</Link>
   ```
 - **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app.
-- **A reload** keeps the active tab, its pages and every other tab's pages.
+- **A reload** keeps the active tab, its pages and layers, and every other tab's.
 
 ### How the history is kept
 
@@ -149,10 +149,12 @@ Back:                        [Home] [Home: post 5] [Search]            ← same 
 Back:                        [Home] [Home: post 5]
 ```
 
-- **A switch costs one close and one push, however deep the tab is.** The tab's other pages are kept in the history state of its entry, not as entries.
-- **Back through those kept pages** is noticed and undone: the router goes forward again and changes the entry to the previous page, with the screen kept still meanwhile.
-- **What a tab keeps** is each page's address and its [in-place values](#in-place-values), such as a search box's text. Dialogs, menus and other layers close on a switch.
-- **How much it keeps:** at most 50 pages per tab.
+- **A switch costs one close and one push, however deep the tab is.** The tab's other pages and layers are kept in the history state of its entry, not as entries.
+- **Back through those kept steps** is noticed and undone: the router goes forward again and changes the entry to the previous page or layer, with the screen kept still meanwhile. Closing a kept layer with its own button shows what was under it the same way, without a new entry.
+- **What a tab keeps** is each page and layer, with every location state value except those marked `persist: false` or `inherit: false`:
+  - dialogs, panels, selections and [in-place values](#in-place-values) such as a search box's text come back with the tab;
+  - popups and menus ([`useLocationPopup`](#uselocationpopup)) close on a switch. On the default tab they close before it, and the rest stays open below.
+- **How much it keeps:** at most 50 pages and layers per tab.
 
 ### Views
 

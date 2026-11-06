@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ROOT_AREA, createRecord } from "../record";
+import {
+  ROOT_AREA,
+  createRecord,
+  type EntryRecord,
+  type StepSnapshot,
+} from "../record";
 import {
   collapseSnapshot,
   collapseSteps,
   findCloseTarget,
   pruneSteps,
+  saveSteps,
   snapshotStep,
 } from "../steps";
 import { pushedValue, rootRecord, step, tabArea } from "./helpers";
@@ -114,16 +120,24 @@ describe("collapse", () => {
 });
 
 describe("snapshotStep", () => {
-  it("keeps in-place and unrecorded values, and the areas inside", () => {
+  it("keeps every value but persist: false and inherit: false ones", () => {
     const inner = tabArea([], { id: "inner" });
     const record = {
       values: {
-        dialog: pushedValue("a"),
+        panel: pushedValue("a"),
+        popup: { ...pushedValue("b"), persist: false },
+        menu: { ...pushedValue("c"), inherit: false },
         query: { area: ROOT_AREA, persist: true, inherit: true },
       },
       areas: [{ ...createRecord().areas[0], id: "outer" }, inner],
     };
-    const state = { dialog: true, query: "cats", note: "x" };
+    const state = {
+      panel: true,
+      popup: true,
+      menu: true,
+      query: "cats",
+      note: "x",
+    };
 
     const snapshot = snapshotStep(
       { pathname: "/p", search: "", hash: "" },
@@ -132,9 +146,47 @@ describe("snapshotStep", () => {
       "outer",
     );
 
-    expect(snapshot.values).toEqual({ query: "cats", note: "x" });
-    expect(Object.keys(snapshot.record.values)).toEqual(["query"]);
+    expect(snapshot.values).toEqual({ panel: true, query: "cats", note: "x" });
+    expect(Object.keys(snapshot.record.values)).toEqual(["panel", "query"]);
     expect(snapshot.record.areas).toEqual([inner]);
+  });
+});
+
+describe("saveSteps", () => {
+  /** A snapshot holding the given value records */
+  const snapshotWith = (
+    values: EntryRecord["values"],
+    pathname = "/p",
+  ): StepSnapshot => ({
+    pathname,
+    search: "",
+    hash: "",
+    values: {},
+    record: { values, areas: [] },
+  });
+
+  it("snapshots the current step and keeps the lower ones", () => {
+    const below = { ...step("p", 1, "page"), snapshot: snapshotWith({}) };
+    const current = snapshotWith({ panel: pushedValue("a") }, "/q");
+
+    const saved = saveSteps([below, step("a", 2)], current);
+    expect(saved).toEqual([below, { ...step("a", 2), snapshot: current }]);
+  });
+
+  it("drops layers whose value isn't kept; the highest left shows the entry", () => {
+    const panel = {
+      ...step("a", 2),
+      snapshot: snapshotWith({ panel: pushedValue("a") }),
+    };
+    const popup = { ...step("b", 3), snapshot: snapshotWith({}) };
+    const current = snapshotWith({ panel: pushedValue("a") }, "/q");
+
+    const saved = saveSteps(
+      [step("p", 1, "page"), panel, popup, step("c", 4)],
+      current,
+    );
+    expect(saved.map((candidate) => candidate.id)).toEqual(["p", "a"]);
+    expect(saved[1].snapshot).toBe(current);
   });
 });
 
@@ -147,5 +199,19 @@ describe("pruneSteps", () => {
 
     const pruned = pruneSteps(area, { dialog: pushedValue("b") });
     expect(pruned.steps.map((candidate) => candidate.id)).toEqual(["p", "b"]);
+  });
+
+  it("keeps the layer steps of lower pages", () => {
+    const area = {
+      ...createRecord().areas[0],
+      steps: [step("p", 1, "page"), step("a", 2), step("q", 3, "page")],
+    };
+
+    const pruned = pruneSteps(area, {});
+    expect(pruned.steps.map((candidate) => candidate.id)).toEqual([
+      "p",
+      "a",
+      "q",
+    ]);
   });
 });

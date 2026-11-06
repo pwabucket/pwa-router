@@ -27,10 +27,10 @@ interface TabsRootProps {
   children?: React.ReactNode;
 }
 
-/** No saved pages */
+/** No saved steps */
 const EMPTY_SAVED = {};
 
-/** A tabbed area: every tab keeps its own pages, and only the active one is in history */
+/** A tabbed area: every tab keeps its own steps, and only the active one is in history */
 const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
   const engine = useContext(TabsEngineContext)!;
   const parent = useContext(TabViewContext);

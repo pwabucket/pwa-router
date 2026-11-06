@@ -7,6 +7,7 @@ For people changing the router itself. The README covers using it.
 - **An area** is a run of entries with one owner. The **root area** is the whole app. Each `TabsRoot` is a **tab area**, and a tab area inside a `TabView` is nested in that tab. The record lists the areas on the live path, outermost first.
 - **A step** is one entry's worth of an area: a `page` (a navigation) or a `layer` (a pushed location state value). A step is **real** (it has an entry, at a `position`: the history length right after its push) or **virtual** (kept only as a snapshot, after a tab was restored into one entry).
 - **Values point at steps**, not at positions: each value records its area, the step of its first push and of its latest push, and its `persist` / `inherit` flags.
+- **A step keeps a snapshot** (address, values and inner areas) once something is pushed above it in a tab area, and the current step when its tab is saved. A snapshot keeps every value but `persist: false` and `inherit: false` ones; a saved layer step whose own value is dropped goes with it (`saveSteps` in `src/core/steps.ts`).
 - **Restoring a tab collapses its steps** (`src/core/steps.ts`): the top step takes the new entry, the rest become virtual, and every area inside the restored step collapses the same way. Nothing is restamped.
 
 ## Two history operations
@@ -25,7 +26,7 @@ Closing a value, swapping layers, switching tabs, popping a tab to its root, lea
 | Transactions | `src/providers/engine/useLocationStateTransactions.ts` | Takes intents, plans them, checks guards, sends them one landing at a time |
 | Busy state | `src/providers/engine/EngineWork.ts` | Work sent and not landed, and operations still running |
 | Watcher | `src/providers/engine/useMoveWatcher.ts` | Sees every user move and asks the deciders whether to undo it, keeping the screen on show |
-| Deciders | `src/providers/engine/deciders/` | Feature rules for undoing moves: guards ask first, then tabs show virtual pages |
+| Deciders | `src/providers/engine/deciders/` | Feature rules for undoing moves: guards ask first, then tabs show virtual steps |
 | Tabs handler | `src/providers/engine/useTabsHandler.ts` | Registers tab areas, records new pages, keeps each area's saved pages |
 | Reload cleanup | `src/providers/engine/useEphemeralStateHandler.ts` | Closes `persist: false` values restored by a reload |
 

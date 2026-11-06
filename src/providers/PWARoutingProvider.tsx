@@ -19,7 +19,7 @@ import { useDestroyIndexHandler } from "./engine/useDestroyIndexHandler";
 import { useEphemeralStateHandler } from "./engine/useEphemeralStateHandler";
 import { useFromPositionHandler } from "./engine/useFromPositionHandler";
 import { createGuardDecider } from "./engine/deciders/guardDecider";
-import { virtualPageDecider } from "./engine/deciders/virtualPageDecider";
+import { virtualStepDecider } from "./engine/deciders/virtualStepDecider";
 import { useMoveWatcher } from "./engine/useMoveWatcher";
 import { useLocationStateTransactions } from "./engine/useLocationStateTransactions";
 import { useNavigateIndexHandler } from "./engine/useNavigateIndexHandler";
@@ -77,9 +77,9 @@ const PWARoutingProvider = ({
     location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
     location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
 
-  /* The deciders of user moves, in order: guards ask first, then tabs show virtual pages */
+  /* The deciders of user moves, in order: guards ask first, then tabs show virtual steps */
   const deciders = useMemo(
-    () => [createGuardDecider(guards), virtualPageDecider],
+    () => [createGuardDecider(guards), virtualStepDecider],
     [guards],
   );
 

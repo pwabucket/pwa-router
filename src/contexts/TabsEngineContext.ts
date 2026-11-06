@@ -9,7 +9,7 @@ interface TabsEngineContextValue {
   configs: TabsConfig[];
   /** The current entry's record, or the one it is about to take */
   record: EntryRecord;
-  /** The latest saved pages of each area's inactive tabs, by area id */
+  /** The latest saved steps of each area's inactive tabs, by area id */
   memories: Record<string, TabsMemory>;
   /** The tab being switched to in an area, shown at once */
   pendingTab: { area: string; tab: string } | null;

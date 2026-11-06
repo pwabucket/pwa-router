@@ -7,7 +7,14 @@ import {
   type StepRecord,
   writeRecord,
 } from "./record";
-import { collapseSnapshot, pruneSteps, snapshotStep } from "./steps";
+import { readValuePosition } from "./queries";
+import {
+  collapseSnapshot,
+  isKeptValue,
+  pruneSteps,
+  saveSteps,
+  snapshotStep,
+} from "./steps";
 
 /** A tab of a tabbed area */
 export interface TabDefinition {
@@ -25,17 +32,17 @@ export interface TabsConfig {
   parent?: { area: string; tab: string };
 }
 
-/** Saved pages of the tabs that aren't active, by tab */
+/** Saved steps of the tabs that aren't active, by tab */
 export type SavedTabSteps = Record<string, StepRecord[]>;
 
-/** The latest saved pages, kept in memory */
+/** The latest saved steps, kept in memory */
 export interface TabsMemory {
   version: number;
   saved: SavedTabSteps;
 }
 
-/** The most pages a tab keeps */
-export const MAX_TAB_PAGES = 50;
+/** The most steps a tab keeps */
+export const MAX_TAB_STEPS = 50;
 
 /** A tab area read from an entry's state, with the record it came from */
 export const readTabsArea = (state: unknown, areaId: string) => {
@@ -70,23 +77,31 @@ export const readTabStart = (area: AreaRecord, config: TabsConfig) => {
   );
 };
 
-/** The active tab's pages as saved: lower pages as they are, the current one snapshotted */
-export const savePages = (
+/** The active tab's steps as saved: lower steps as they are, the current one snapshotted */
+export const saveTabSteps = (
   area: AreaRecord,
   location: Location,
   record: EntryRecord,
-) => {
-  const pages = readPageSteps(area);
-  const current = pages[pages.length - 1];
-  if (!current) return [];
+) =>
+  saveSteps(
+    area.steps,
+    snapshotStep(location, location.state, record, area.id),
+  ).slice(-MAX_TAB_STEPS);
 
-  return [
-    ...pages.slice(0, -1),
-    {
-      ...current,
-      snapshot: snapshotStep(location, location.state, record, area.id),
-    },
-  ].slice(-MAX_TAB_PAGES);
+/** The landing that closes the values a saved step drops, if any are set */
+export const readDroppedLanding = (record: EntryRecord) => {
+  let landing: number | undefined;
+
+  for (const [key, value] of Object.entries(record.values)) {
+    if (isKeptValue(value)) continue;
+
+    /* Land before the lowest one's push */
+    const position = readValuePosition(record, key, "latest");
+    if (position === undefined) continue;
+    if (landing === undefined || position < landing) landing = position;
+  }
+
+  return landing;
 };
 
 /** A tab's first page, as a new page step */
@@ -125,37 +140,37 @@ export const findTab = (config: TabsConfig, tabId: string) =>
   config.tabs.find((tab) => tab.id === tabId) ??
   config.tabs.find((tab) => tab.id === config.defaultTab)!;
 
-/** Saved pages with the left tab's pages stored and the entered tab's removed */
+/** Saved steps with the left tab's steps stored and the entered tab's removed */
 export const updateSaved = (
   saved: SavedTabSteps,
   leftTab: string,
-  leftPages: StepRecord[],
+  leftSteps: StepRecord[],
   enteredTab: string,
 ) => {
-  const next = { ...saved, [leftTab]: leftPages };
+  const next = { ...saved, [leftTab]: leftSteps };
   delete next[enteredTab];
   return next;
 };
 
-/** The address of a saved page */
-export const readPagePath = (step: StepRecord) => ({
+/** The address of a saved step */
+export const readStepPath = (step: StepRecord) => ({
   pathname: step.snapshot?.pathname ?? "/",
   search: step.snapshot?.search ?? "",
   hash: step.snapshot?.hash ?? "",
 });
 
-/** The state of an entry showing a saved page, in the given tab area */
-export const buildPageState = (
-  page: StepRecord,
+/** The state of an entry showing a saved step, in the given tab area */
+export const buildStepState = (
+  step: StepRecord,
   area: AreaRecord,
   outerRecord: EntryRecord,
   position: number,
 ) => {
-  const snapshot = page.snapshot;
+  const snapshot = step.snapshot;
   const restored = snapshot
     ? collapseSnapshot(snapshot, position)
     : { values: {}, areas: [] };
-  /* The areas around this one, keeping only the steps the page's values use */
+  /* The areas around this one, keeping only the steps the step's values use */
   const index = outerRecord.areas.findIndex(
     (candidate) => candidate.id === area.id,
   );

@@ -157,10 +157,10 @@ test.describe("tabbed app", () => {
     await expectShown(page, "Search");
   });
 
-  test("a dialog closes on a switch; an in-place value comes back", async ({
+  test("a popup closes on a switch; a panel and an in-place value come back", async ({
     page,
   }) => {
-    /* A query on Search, then a dialog on a home post */
+    /* A query on Search, then a dialog and a popup on a home post */
     await visit(page, "/tabbed");
     await press(page, "search tab");
     await shown(page).getByLabel("Query").fill("example");
@@ -168,18 +168,75 @@ test.describe("tabbed app", () => {
     await press(page, "home tab");
     await follow(page, "Open post 1");
     await press(page, "Open share");
-    await expectShown(page, "Share open");
+    await press(page, "Open more");
+    await expectShown(page, "More open");
 
-    /* Switch away and back: the dialog is closed */
+    /* Switch away and back: the dialog is open, the popup closed */
     await press(page, "search tab");
     await press(page, "home tab");
     await expectShown(page, "Post 1");
+    await expectShown(page, "Share open");
+    await expectShown(page, "More closed");
+
+    /* Back closes the dialog */
+    await goBack(page);
     await expectShown(page, "Share closed");
 
     /* Search's query comes back with its page */
     await press(page, "search tab");
     await goBack(page);
     await expect(shown(page).getByLabel("Query")).toHaveValue("example");
+  });
+
+  test("a restored tab backs through its layers in one entry", async ({
+    page,
+  }) => {
+    /* Filters open on Search's results, then away and back */
+    const start = await visit(page, "/tabbed");
+    await press(page, "search tab");
+    await follow(page, "Open results");
+    await press(page, "Open filters");
+    await press(page, "profile tab");
+    const restored = await press(page, "search tab");
+    expect(restored.index).toBe(start.index! + 1);
+    await expectShown(page, "Filters open");
+
+    /* Back closes the filters in the same entry */
+    const closed = await goBack(page);
+    expect(closed.index).toBe(start.index! + 1);
+    expect(closed.length).toBe(restored.length);
+    await expectShown(page, "Results");
+    await expectShown(page, "Filters closed");
+
+    /* Back shows Search, then home */
+    await goBack(page);
+    await expectShown(page, "Search");
+    const home = await goBack(page);
+    expect(home.index).toBe(start.index);
+  });
+
+  test("closing a restored layer shows the step below in its entry", async ({
+    page,
+  }) => {
+    /* Filters open on Search's results, then away and back */
+    const start = await visit(page, "/tabbed");
+    await press(page, "search tab");
+    await follow(page, "Open results");
+    await press(page, "Open filters");
+    await press(page, "profile tab");
+    const restored = await press(page, "search tab");
+    await expectShown(page, "Filters open");
+
+    /* Its own button closes it without a traversal or a new entry */
+    const closed = await press(page, "Close filters");
+    expect(closed.index).toBe(start.index! + 1);
+    expect(closed.length).toBe(restored.length);
+    await expectShown(page, "Results");
+    await expectShown(page, "Filters closed");
+
+    /* Back shows Search */
+    await goBack(page);
+    await expectShown(page, "Search");
   });
 
   test("leaving the area clears every tab's history", async ({ page }) => {

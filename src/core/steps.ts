@@ -11,17 +11,15 @@ import {
 } from "./record";
 
 /** The address of a location */
-interface Address {
+export interface Address {
   pathname: string;
   search: string;
   hash: string;
 }
 
-/** Which values a saved step keeps; by default in-place values only (no layers) */
-type KeepValue = (value: ValueRecord | undefined) => boolean;
-
-/** Keeps in-place and unrecorded values, drops pushed ones (layers) */
-const keepInPlaceValues: KeepValue = (value) => !value?.latest;
+/** A value a saved step keeps: every one but those marked persist: false or inherit: false */
+export const isKeptValue = (value: ValueRecord | undefined) =>
+  !value || (value.persist && value.inherit);
 
 /** Where a close lands */
 export type CloseTarget =
@@ -104,14 +102,13 @@ export const snapshotStep = (
   state: unknown,
   record: EntryRecord,
   areaId: string,
-  keepValue: KeepValue = keepInPlaceValues,
 ): StepSnapshot => {
   const values: Record<string, unknown> = {};
   const valueRecords: Record<string, ValueRecord> = {};
 
   /* The values the snapshot keeps */
   for (const [key, value] of Object.entries(readAppValues(state))) {
-    if (!keepValue(record.values[key])) continue;
+    if (!isKeptValue(record.values[key])) continue;
     values[key] = value;
     if (record.values[key]) valueRecords[key] = record.values[key];
   }
@@ -169,7 +166,7 @@ export const collapseSnapshot = (
   areas: snapshot.record.areas.map((area) => collapseArea(area, position)),
 });
 
-/** An area keeps its page steps, and the layer steps its values point at */
+/** An area keeps every step up to its current page, and the layers above it its values use */
 export const pruneSteps = (
   area: AreaRecord,
   values: Record<string, ValueRecord>,
@@ -182,10 +179,37 @@ export const pruneSteps = (
     if (value.latest) used.add(value.latest);
   }
 
+  /* The current page's step: lower pages' layers stay as they are */
+  const currentPage = area.steps.findLastIndex((step) => step.kind === "page");
+
   return {
     ...area,
     steps: area.steps.filter(
-      (step) => step.kind === "page" || used.has(step.id),
+      (step, index) => index <= currentPage || used.has(step.id),
     ),
   };
+};
+
+/** A saved step stays when it's a page, or a layer whose own value its snapshot keeps */
+const isKeptStep = (step: StepRecord) =>
+  step.kind === "page" ||
+  Object.values(step.snapshot?.record.values ?? {}).some(
+    (value) => value.latest === step.id,
+  );
+
+/** Steps as saved: the current one snapshotted, and layers whose value isn't kept dropped */
+export const saveSteps = (steps: StepRecord[], snapshot: StepSnapshot) => {
+  const current = steps[steps.length - 1];
+  if (!current) return [];
+
+  /* The steps a tab keeps */
+  const kept = [...steps.slice(0, -1), { ...current, snapshot }].filter(
+    isKeptStep,
+  );
+
+  /* The highest one shows the current entry */
+  const highest = kept[kept.length - 1];
+  if (highest) kept[kept.length - 1] = { ...highest, snapshot };
+
+  return kept;
 };

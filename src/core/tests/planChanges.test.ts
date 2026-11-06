@@ -5,7 +5,13 @@ import {
   type ValueChange,
 } from "../planChanges";
 import { ROUTER_RECORD, createRecord, readRecord } from "../record";
-import { pushedValue, rootRecord, step, stepIds } from "./helpers";
+import {
+  pushedValue,
+  rootRecord,
+  step,
+  stepIds,
+  tabArea,
+} from "./helpers";
 
 /** A change with default flags */
 const change = (
@@ -27,6 +33,7 @@ const entry = (
   record = createRecord(),
 ) => ({
   key: "k",
+  address: { pathname: "/p", search: "", hash: "" },
   state: { ...values, [ROUTER_RECORD]: record },
   record,
 });
@@ -240,5 +247,48 @@ describe("planChanges", () => {
     const written = readRecord(plan.state)!;
     expect(written.values.dialog).toBeUndefined();
     expect(written.areas[0].steps).toEqual([]);
+  });
+
+  it("snapshots the step below a push in a tab area", () => {
+    const record = {
+      ...createRecord(),
+      values: {
+        item: { ...pushedValue("a"), area: "tabs" },
+        popup: { ...pushedValue("a"), area: "tabs", persist: false },
+      },
+      areas: [
+        createRecord().areas[0],
+        tabArea([step("p", 1, "page"), step("a", 2)]),
+      ],
+    };
+    const plan = planChanges(
+      entry({ item: 4, popup: true }, record),
+      [change("panel", true)],
+      stepIds(),
+    );
+
+    if (plan.kind !== "write") throw new Error("expected a write");
+    const [page, below, pushed] = readRecord(plan.state)!.areas[1].steps;
+
+    /* Only the step below keeps the entry, without its dropped values */
+    expect(page.snapshot).toBeUndefined();
+    expect(below.snapshot).toMatchObject({
+      pathname: "/p",
+      values: { item: 4 },
+    });
+    expect(Object.keys(below.snapshot!.record.values)).toEqual(["item"]);
+    expect(pushed).toEqual(step("s1", null));
+  });
+
+  it("keeps no snapshot for a push in the root area", () => {
+    const record = rootRecord([step("a", 3)], { dialog: pushedValue("a") });
+    const plan = planChanges(
+      entry({ dialog: true }, record),
+      [change("panel", true)],
+      stepIds(),
+    );
+
+    if (plan.kind !== "write") throw new Error("expected a write");
+    expect(readRecord(plan.state)!.areas[0].steps[0].snapshot).toBeUndefined();
   });
 });

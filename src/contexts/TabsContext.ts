@@ -8,7 +8,7 @@ interface TabsContextValue {
   active: string;
   /** The tab whose page is the real location */
   liveTab: string;
-  /** Saved pages of the tabs that aren't active */
+  /** Saved steps of the tabs that aren't active */
   saved: SavedTabSteps;
   /** Switches to a tab; the active one pops to its root */
   select: (tab: string) => void;

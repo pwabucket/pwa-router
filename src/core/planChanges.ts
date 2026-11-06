@@ -1,5 +1,6 @@
 import type { NavigateOptions } from "react-router";
 import {
+  ROOT_AREA,
   innermostArea,
   updateArea,
   withoutRecord,
@@ -13,6 +14,8 @@ import {
   findCloseTarget,
   findStepIndex,
   pruneSteps,
+  snapshotStep,
+  type Address,
   type CloseTarget,
 } from "./steps";
 
@@ -39,6 +42,8 @@ export interface ValueChange {
 /** The current entry the changes are planned from */
 export interface PlanEntry {
   key: string;
+  /** The entry's address, kept by the step a push goes above */
+  address: Address;
   /** The full location state: app values and the record */
   state: Record<string, unknown>;
   record: EntryRecord;
@@ -252,11 +257,25 @@ const planWrite = (
   /* The pushed step: a new one, or the replaced entry's */
   const stepId = replacedStep ?? newStepId();
   const areaId = innermostArea(entry.record).id;
+
+  /* In a tab area, the current step keeps the entry, to come back as a virtual step */
+  const below =
+    areaId === ROOT_AREA
+      ? undefined
+      : snapshotStep(entry.address, currentState, currentRecord, areaId);
+
   const pushedRecord = replacedStep
     ? inherited.record
     : updateArea(inherited.record, areaId, (area) => ({
         ...area,
-        steps: [...area.steps, createStep(stepId, "layer")],
+        steps: [
+          ...area.steps.map((step, index) =>
+            below && index === area.steps.length - 1
+              ? { ...step, snapshot: below }
+              : step,
+          ),
+          createStep(stepId, "layer"),
+        ],
       }));
 
   const pushed = applyChanges(inherited.values, pushedRecord, pushes, stepId);

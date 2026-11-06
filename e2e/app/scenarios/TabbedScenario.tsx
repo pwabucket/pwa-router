@@ -7,6 +7,7 @@ import {
   TabsRoot,
   TabView,
   useLeaveGuard,
+  useLocationPopup,
   useLocationState,
   useLocationToggle,
   useTabs,
@@ -51,20 +52,25 @@ const Feed = () => (
   </>
 );
 
-/** A post with a dialog and a raw React Router link */
+/** A post with a dialog, a popup menu and a raw React Router link */
 const Post = () => {
   const { id } = useParams();
   const [isShareOpen, setShareOpen] = useLocationToggle("share");
+  const more = useLocationPopup("more");
 
   return (
     <>
       {/* Status */}
       <p>Post {id}</p>
       <p>{isShareOpen ? "Share open" : "Share closed"}</p>
+      <p>{more.open ? "More open" : "More closed"}</p>
 
-      {/* Dialog and links */}
+      {/* Dialog, popup and links */}
       <button type="button" onClick={() => setShareOpen(true)}>
         Open share
+      </button>
+      <button type="button" onClick={() => more.onOpenChange(true)}>
+        Open more
       </button>
       <Link to={`/tabbed/post/${id}/comments`}>Open comments</Link>
       <RouterLink to="/tabbed/post/2">Raw link to post 2</RouterLink>
@@ -92,14 +98,30 @@ const Search = () => {
   );
 };
 
-/** Search results, with a frame whose links add history entries */
-const Results = () => (
-  <>
-    <p>Results</p>
-    <Link to="/tabbed/search/photo/1">Open photo 1</Link>
-    <iframe src="/frame.html" title="Results frame" />
-  </>
-);
+/** Search results, with a filters panel and a frame whose links add history entries */
+const Results = () => {
+  const [isFiltersOpen, setFiltersOpen] = useLocationToggle("filters");
+
+  return (
+    <>
+      {/* Status */}
+      <p>Results</p>
+      <p>{isFiltersOpen ? "Filters open" : "Filters closed"}</p>
+
+      {/* Panel */}
+      <button type="button" onClick={() => setFiltersOpen(true)}>
+        Open filters
+      </button>
+      <button type="button" onClick={() => setFiltersOpen(false)}>
+        Close filters
+      </button>
+
+      {/* Links and frame */}
+      <Link to="/tabbed/search/photo/1">Open photo 1</Link>
+      <iframe src="/frame.html" title="Results frame" />
+    </>
+  );
+};
 
 /** A photo that links to the next one */
 const Photo = () => {

@@ -167,7 +167,7 @@ const useLocationStateTransactions = (
         return false;
       }
 
-      /* Leaving the area forgets every tab's pages */
+      /* Leaving the area forgets every tab's steps */
       if (op.kind === "exit") reset(op.area);
 
       runTabsPlan(plan, location);
@@ -215,7 +215,11 @@ const useLocationStateTransactions = (
       const { navigate } = latestRef.current;
 
       /* Plan against the current entry */
-      const entry = { key: location.key, ...readEntry(location.state) };
+      const entry = {
+        key: location.key,
+        address: location,
+        ...readEntry(location.state),
+      };
       let changes = queued;
       let plan = planChanges(entry, changes, createStepId);
 

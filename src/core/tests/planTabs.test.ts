@@ -45,6 +45,13 @@ const page = (
   },
 });
 
+/** A layer step at a position */
+const layer = (id: string, position: number): StepRecord => ({
+  id,
+  kind: "layer",
+  position,
+});
+
 /** A tab entry: its location, record and area */
 const entry = (pathname: string, area: AreaRecord) => {
   const record = { ...createRecord(), areas: [createRecord().areas[0], area] };
@@ -91,6 +98,56 @@ describe("planTabsOp", () => {
     expect(searchArea.steps.map((step) => step.position)).toEqual([null, 9]);
     expect(searchArea.saved.home[0].snapshot?.pathname).toBe("/feed");
     expect(searchArea.savedVersion).toBe(3);
+  });
+
+  it("leaves the default tab's kept layers below, closing the dropped ones", () => {
+    const panel = {
+      area: "main",
+      first: "a",
+      latest: "a",
+      persist: true,
+      inherit: true,
+    };
+    const popup = { ...panel, first: "b", latest: "b", persist: false };
+
+    /* The panel's step was snapshotted when the popup was pushed above it */
+    const panelStep = {
+      ...layer("a", 2),
+      snapshot: {
+        ...page("feed", 1).snapshot!,
+        values: { panel: true },
+        record: { values: { panel }, areas: [] },
+      },
+    };
+    const area = {
+      ...createArea("main", "home", 1, 0),
+      steps: [page("feed", 1), panelStep, layer("b", 3)],
+    };
+    const tabEntry = entry("/feed", area);
+    tabEntry.record.values = { panel, popup };
+    tabEntry.location.state = {
+      ...(tabEntry.location.state as object),
+      panel: true,
+      popup: true,
+    };
+
+    const plan = planTabsOp(
+      { kind: "select", area: "main", tab: "search" },
+      config,
+      tabEntry,
+      memory,
+      stepIds(),
+    );
+
+    /* Land before the popup's push; the panel stays below */
+    expect(plan?.landing).toBe(3);
+
+    /* Home is saved with its panel step, without the popup's */
+    const written = readRecord(plan!.write!.buildState(9))!;
+    expect(written.areas[1].saved.home.map((step) => step.id)).toEqual([
+      "feed",
+      "a",
+    ]);
   });
 
   it("closes the slot to return to the default tab", () => {

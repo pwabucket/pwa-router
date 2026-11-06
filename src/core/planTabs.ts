@@ -10,16 +10,17 @@ import {
 } from "./record";
 import { collapseSteps, pruneSteps } from "./steps";
 import {
-  MAX_TAB_PAGES,
-  buildPageState,
+  MAX_TAB_STEPS,
+  buildStepState,
   findTab,
   matchTab,
-  readPagePath,
+  readDroppedLanding,
   readPagePosition,
   readPageSteps,
+  readStepPath,
   readTabStart,
   rootPageStep,
-  savePages,
+  saveTabSteps,
   updateSaved,
   type TabsConfig,
   type TabsMemory,
@@ -74,26 +75,26 @@ export const isDefaultCollapsed = (area: AreaRecord, position: number) =>
   area.start === position &&
   (area.saved[area.defaultTab]?.length ?? 0) > 0;
 
-/** The state showing the default tab's saved pages in the entry at the position, saving the active tab's */
+/** The state showing the default tab's saved steps in the entry at the position, saving the active tab's */
 export const showDefaultTab = (
   area: AreaRecord,
   record: EntryRecord,
   location: Location,
   position: number,
 ) => {
-  const pages = area.saved[area.defaultTab];
-  const top = pages[pages.length - 1];
+  const steps = area.saved[area.defaultTab];
+  const top = steps[steps.length - 1];
 
-  return buildPageState(
+  return buildStepState(
     top,
     {
       ...area,
       active: area.defaultTab,
-      steps: collapseSteps(pages, position),
+      steps: collapseSteps(steps, position),
       saved: updateSaved(
         area.saved,
         area.active,
-        savePages(area, location, record),
+        saveTabSteps(area, location, record),
         area.defaultTab,
       ),
       savedVersion: area.savedVersion + 1,
@@ -103,7 +104,7 @@ export const showDefaultTab = (
   );
 };
 
-/** Plans a switch to another tab: close the slot, then push the tab's top page */
+/** Plans a switch to another tab: close the slot, then push the tab's top step */
 const planSelect = (
   config: TabsConfig,
   entry: TabsEntry,
@@ -113,21 +114,21 @@ const planSelect = (
 ): TabsPlan => {
   const { location, record, area } = entry;
 
-  /* The default tab stays below; another tab's slot closes */
+  /* The default tab stays below, without the values its steps drop; another tab's slot closes */
   const landing =
     area.active === config.defaultTab
-      ? landOn(entry, readPagePosition(area))
+      ? readDroppedLanding(record)
       : readTabStart(area, config);
 
-  /* Back to the default tab after a restore: show its pages in the area's entry */
+  /* Back to the default tab after a restore: show its steps in the area's entry */
   const start = readTabStart(area, config);
   if (target === config.defaultTab && isDefaultCollapsed(area, start)) {
-    const pages = area.saved[area.defaultTab];
+    const steps = area.saved[area.defaultTab];
 
     return {
       landing: landOn(entry, start),
       write: {
-        to: readPagePath(pages[pages.length - 1]),
+        to: readStepPath(steps[steps.length - 1]),
         replace: true,
         stamp: start,
         buildState: () => showDefaultTab(area, record, location, start),
@@ -135,35 +136,36 @@ const planSelect = (
     };
   }
 
-  /* Back to the default tab: its pages are already below */
+  /* Back to the default tab: its steps are already below */
   if (target === config.defaultTab) return { landing };
 
-  /* Save the left tab's pages, take out the target's */
+  /* Save the left tab's steps, take out the target's */
   const saved = updateSaved(
     memory.saved,
     area.active,
-    savePages(area, location, record),
+    saveTabSteps(area, location, record),
     target,
   );
 
-  /* The target's top page holds its lower pages as virtual pages */
-  const targetPages = memory.saved[target] ?? [
-    rootPageStep(findTab(config, target), newStepId()),
-  ];
-  const top = targetPages[targetPages.length - 1];
+  /* The target's top step holds its lower steps as virtual steps */
+  const savedSteps = memory.saved[target];
+  const targetSteps = savedSteps?.length
+    ? savedSteps
+    : [rootPageStep(findTab(config, target), newStepId())];
+  const top = targetSteps[targetSteps.length - 1];
 
   return {
     landing,
     write: {
-      to: readPagePath(top),
+      to: readStepPath(top),
       replace: false,
       buildState: (position) =>
-        buildPageState(
+        buildStepState(
           top,
           {
             ...area,
             active: target,
-            steps: collapseSteps(targetPages, position),
+            steps: collapseSteps(targetSteps, position),
             saved,
             savedVersion: memory.version + 1,
           },
@@ -183,7 +185,7 @@ const planPopToRoot = (
 ): TabsPlan | null => {
   const { location, record, area } = entry;
   const root = rootPageStep(findTab(config, area.active), newStepId());
-  const rootPath = readPagePath(root);
+  const rootPath = readStepPath(root);
   const start = readTabStart(area, config);
   const landing = landOn(entry, start);
 
@@ -204,7 +206,7 @@ const planPopToRoot = (
       replace: true,
       stamp: start,
       buildState: () =>
-        buildPageState(
+        buildStepState(
           root,
           {
             ...area,
@@ -274,22 +276,22 @@ export const adoptTabs = (
 ): AreaRecord => {
   const latest = { saved: memory.saved, savedVersion: memory.version };
 
-  /* A page pushed in the area: the previous page goes below it */
+  /* A page pushed in the area: the previous step goes below it */
   if (previous && navigationType === "PUSH") {
     const page: StepRecord = {
       id: newStepId(),
       kind: "page",
       position: historyLength,
     };
-    const pages = [
-      ...savePages(previous.area, previous.location, previous.record),
+    const steps = [
+      ...saveTabSteps(previous.area, previous.location, previous.record),
       page,
     ];
 
     return {
       ...previous.area,
       ...latest,
-      steps: pages.slice(-MAX_TAB_PAGES),
+      steps: steps.slice(-MAX_TAB_STEPS),
     };
   }
 
@@ -314,7 +316,7 @@ export const adoptTabs = (
   };
 };
 
-/** The saved pages after an entry settles: newer history wins, a tab change saves the left tab */
+/** The saved steps after an entry settles: newer history wins, a tab change saves the left tab */
 export const settleMemory = (
   memory: TabsMemory,
   previous: TabsEntry | null,
@@ -330,7 +332,7 @@ export const settleMemory = (
       saved: updateSaved(
         memory.saved,
         previous.area.active,
-        savePages(previous.area, previous.location, previous.record),
+        saveTabSteps(previous.area, previous.location, previous.record),
         area.active,
       ),
     };
@@ -349,7 +351,7 @@ export const popToStep = (
   const index = area.steps.findIndex((step) => step.id === stepId);
   const step = area.steps[index];
 
-  return buildPageState(
+  return buildStepState(
     step,
     {
       ...area,
@@ -371,7 +373,7 @@ export const planBackfill = (
 ) => {
   const { location, record, area } = entry;
   const isDefaultTab = area.active === config.defaultTab;
-  const current = savePages(area, location, record).at(-1);
+  const current = saveTabSteps(area, location, record).at(-1);
   if (!current) return null;
 
   /* The pages from the bottom: default root, tab root, then the current page */
@@ -383,7 +385,7 @@ export const planBackfill = (
   }
 
   const lowest = pages[pages.length - 1];
-  if (readPagePath(current).pathname !== readPagePath(lowest).pathname) {
+  if (readStepPath(current).pathname !== readStepPath(lowest).pathname) {
     pages.push(current);
   } else {
     pages[pages.length - 1] = { ...current, id: lowest.id };
@@ -402,8 +404,8 @@ export const planBackfill = (
     const steps = positioned.slice(isTabPage ? 1 : 0, offset + 1);
 
     return {
-      to: readPagePath(page),
-      state: buildPageState(
+      to: readStepPath(page),
+      state: buildStepState(
         page,
         {
           ...area,

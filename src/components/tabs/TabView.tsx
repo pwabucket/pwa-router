@@ -7,7 +7,7 @@ import { TabViewContext } from "../../contexts/TabViewContext";
 import { usePWARouting } from "../../hooks/usePWARouting";
 import type { QueueLocationStateChange } from "../../providers/engine/useLocationStateTransactions";
 import type { StepRecord } from "../../core/record";
-import { findTab, readPagePath, rootPageStep } from "../../core/tabs";
+import { findTab, readStepPath, rootPageStep } from "../../core/tabs";
 import { warnHiddenTabChange } from "../../utils/tabsWarnings";
 
 interface TabViewProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -21,20 +21,20 @@ interface TabViewProps extends React.HTMLAttributes<HTMLDivElement> {
 const ignoreChange: QueueLocationStateChange = ({ key }) =>
   warnHiddenTabChange(key);
 
-/** A saved page as a location; it never changes while the page stays the same */
-const toLocation = (page: StepRecord, tabId: string) => {
-  const { pathname, search, hash } = readPagePath(page);
+/** A saved step as a location; its key never changes while the address stays the same */
+const toLocation = (step: StepRecord, tabId: string) => {
+  const { pathname, search, hash } = readStepPath(step);
 
   return {
     pathname,
     search,
     hash,
-    state: page.snapshot?.values ?? {},
+    state: step.snapshot?.values ?? {},
     key: `${tabId}:${pathname}${search}${hash}`,
   } as Location;
 };
 
-/** One tab's screens: the real location when live, its saved top page otherwise */
+/** One tab's screens: the real location when live, its saved top step otherwise */
 const TabView = ({
   id,
   keepMounted = true,
@@ -50,13 +50,13 @@ const TabView = ({
   const isLive = tabs.liveTab === id;
   const canAct = isShown && isLive;
 
-  /* The tab's saved top page, or its root */
-  const savedPages = tabs.saved[id];
-  const savedPage = useMemo(
+  /* The tab's saved top step, or its root */
+  const savedSteps = tabs.saved[id];
+  const savedStep = useMemo(
     () =>
-      savedPages?.[savedPages.length - 1] ??
+      savedSteps?.[savedSteps.length - 1] ??
       rootPageStep(findTab(tabs.config, id), `${id}:root`),
-    [savedPages, tabs.config, id],
+    [savedSteps, tabs.config, id],
   );
 
   /* The live view follows the real location; it can't act while hidden */
@@ -65,14 +65,14 @@ const TabView = ({
     [canAct, routing],
   );
 
-  /* Another view shows its saved page, and stays still while other tabs navigate */
+  /* Another view shows its saved step, and stays still while other tabs navigate */
   const savedRouting = useMemo(
     () => ({
-      resolvedLocation: toLocation(savedPage, id),
+      resolvedLocation: toLocation(savedStep, id),
       isCorrecting: false,
       isInactive: true,
     }),
-    [savedPage, id],
+    [savedStep, id],
   );
 
   /** The routing the view's screens read */

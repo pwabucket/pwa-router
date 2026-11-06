@@ -8,7 +8,7 @@ import {
 import { LeaveGuardRegistry } from "../../../utils/leaveGuards";
 import { createGuardDecider } from "../deciders/guardDecider";
 import type { UserMove } from "../deciders/types";
-import { virtualPageDecider } from "../deciders/virtualPageDecider";
+import { virtualStepDecider } from "../deciders/virtualStepDecider";
 
 /** A location at a path, with state */
 const at = (pathname: string, state: unknown = null) =>
@@ -62,8 +62,8 @@ describe("guard decider", () => {
   });
 });
 
-describe("virtual page decider", () => {
-  /** A restored tab entry with one virtual page below */
+describe("virtual step decider", () => {
+  /** A restored tab entry with one virtual step below */
   const restored = at("/search/results", {
     [ROUTER_RECORD]: {
       values: {},
@@ -92,7 +92,7 @@ describe("virtual page decider", () => {
   });
 
   it("undoes a back out of a restored entry, then shows the page below", () => {
-    const decision = virtualPageDecider(back(restored, at("/")));
+    const decision = virtualStepDecider(back(restored, at("/")));
     expect(decision?.undo).toBe("traverse");
 
     const navigate = vi.fn();
@@ -104,9 +104,9 @@ describe("virtual page decider", () => {
   });
 
   it("lets other moves through", () => {
-    expect(virtualPageDecider(back(at("/a"), at("/")))).toBeUndefined();
+    expect(virtualStepDecider(back(at("/a"), at("/")))).toBeUndefined();
     expect(
-      virtualPageDecider({ ...back(restored, at("/")), delta: -2 }),
+      virtualStepDecider({ ...back(restored, at("/")), delta: -2 }),
     ).toBeUndefined();
   });
 });

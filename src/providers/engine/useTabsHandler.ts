@@ -30,10 +30,10 @@ import type { EngineWork } from "./EngineWork";
 /** Memory of an area before any of its entries has settled */
 const EMPTY_MEMORY: TabsMemory = { version: 0, saved: {} };
 
-/** Saved pages of every registered area, by area id */
+/** Saved steps of every registered area, by area id */
 type TabsMemories = Record<string, TabsMemory>;
 
-/** The saved pages of every area, merged from a newly settled entry */
+/** The saved steps of every area, merged from a newly settled entry */
 const settleMemories = (
   memories: TabsMemories,
   configs: TabsConfig[],
@@ -60,7 +60,7 @@ const settleMemories = (
   return next;
 };
 
-/** The record with every area's saved pages brought up to memory; undefined when already there */
+/** The record with every area's saved steps brought up to memory; undefined when already there */
 const syncRecord = (record: EntryRecord, memories: TabsMemories) => {
   let isStale = false;
 
@@ -117,7 +117,7 @@ const useTabsHandler = (
     [canWrite, configs, tracked, location, record, navigationType, memories],
   );
 
-  /* Settle on entries carrying every live area, merging the saved pages */
+  /* Settle on entries carrying every live area, merging the saved steps */
   const canSettle = canWrite && !adoptedRecord;
   if (canSettle && tracked?.location.key !== location.key) {
     const nextMemories = settleMemories(memories, configs, tracked, record);
@@ -125,7 +125,7 @@ const useTabsHandler = (
     if (nextMemories !== memories) setMemories(nextMemories);
   }
 
-  /* The entry's areas brought up to the saved pages in memory */
+  /* The entry's areas brought up to the saved steps in memory */
   const syncedRecord = canSettle ? syncRecord(record, memories) : undefined;
 
   /* Write the adopted or synced record in place */
@@ -154,7 +154,7 @@ const useTabsHandler = (
     ]);
   }, []);
 
-  /** Forgets an area's saved pages and the tracked entry (leaving the area) */
+  /** Forgets an area's saved steps and the tracked entry (leaving the area) */
   const reset = useCallback((id: string) => {
     setTracked(null);
     setMemories((current) => {
