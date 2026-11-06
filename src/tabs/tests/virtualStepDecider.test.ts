@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { ROUTER_RECORD } from "../../constants";
 import { createArea, createRecord } from "../../engine/core/record";
 import { at, back } from "../../engine/tests/moves";
-import { virtualStepDecider } from "../virtualStepDecider";
+import { createVirtualStepDecider } from "../virtualStepDecider";
+
+/** The decider with the test's area mounted */
+const virtualStepDecider = createVirtualStepDecider(new Set(["main"]));
 
 describe("virtual step decider", () => {
   /** A restored tab entry with one virtual step below */
@@ -43,6 +46,11 @@ describe("virtual step decider", () => {
       { pathname: "/search", search: "", hash: "" },
       expect.objectContaining({ replace: true }),
     );
+  });
+
+  it("lets a back through when the area's TabsRoot isn't mounted", () => {
+    const unmounted = createVirtualStepDecider(new Set());
+    expect(unmounted(back(restored, at("/")))).toBeUndefined();
   });
 
   it("lets other moves through", () => {

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import {
   TabsRoot,
-  TabView,
   useLeaveGuard,
   useLocationPopup,
   useLocationState,
   useLocationToggle,
   useTabs,
 } from "../../../src";
+import { TabPane } from "../components/TabPane";
 
 /** The tabs of the page, all at its address */
 const TABS = [{ id: "canvas" }, { id: "items" }, { id: "settings" }];
@@ -162,15 +162,15 @@ const LayoutScenario = () => (
     <TabBar />
 
     {/* Views */}
-    <TabView id="canvas" data-tab="canvas">
+    <TabPane id="canvas" data-tab="canvas">
       <Canvas />
-    </TabView>
-    <TabView id="items" data-tab="items">
+    </TabPane>
+    <TabPane id="items" data-tab="items">
       <Items />
-    </TabView>
-    <TabView id="settings" data-tab="settings">
+    </TabPane>
+    <TabPane id="settings" data-tab="settings">
       <Settings />
-    </TabView>
+    </TabPane>
   </TabsRoot>
 );
 

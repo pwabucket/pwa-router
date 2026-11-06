@@ -33,7 +33,7 @@ const useLinkProps = ({
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       onClick?.(event);
 
-      /* Navigating now would race the engine, or come from a hidden tab */
+      /* Navigating now would race the engine, or come from a tab that isn't active */
       if (isCorrecting || isInactive) {
         event.preventDefault();
         return;

@@ -3,10 +3,10 @@ import {
   Link,
   Route,
   Routes,
-  TabView,
   TabsRoot,
   useTabs,
 } from "../../../src";
+import { TabPane } from "../components/TabPane";
 
 /** The outer tabs */
 const OUTER_TABS = [
@@ -92,9 +92,9 @@ const Library = () => (
   <TabsRoot id="inner" tabs={INNER_TABS} defaultTab="books">
     <TabBar tabs={INNER_TABS} />
     {INNER_TABS.map(({ id }) => (
-      <TabView key={id} id={id} data-inner-tab={id}>
+      <TabPane key={id} id={id} data-inner-tab={id}>
         <LibraryRoutes />
-      </TabView>
+      </TabPane>
     ))}
   </TabsRoot>
 );
@@ -112,9 +112,9 @@ const NestedTabsScenario = () => (
   <TabsRoot id="outer" tabs={OUTER_TABS} defaultTab="home">
     <TabBar tabs={OUTER_TABS} />
     {OUTER_TABS.map(({ id }) => (
-      <TabView key={id} id={id} data-outer-tab={id}>
+      <TabPane key={id} id={id} data-outer-tab={id}>
         <OuterRoutes />
-      </TabView>
+      </TabPane>
     ))}
   </TabsRoot>
 );

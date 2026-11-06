@@ -22,11 +22,11 @@ export const warnInvalidTabs = ({ id, tabs, defaultTab }: TabsConfig) => {
   }
 };
 
-/** Warns, in development, when a hidden tab tries to change location state */
+/** Warns, in development, when a tab that isn't active tries to change location state */
 export const warnHiddenTabChange = (key: string) => {
   if (isProduction()) return;
 
   console.warn(
-    `[pwa-router] A hidden tab tried to change "${key}"; it can't until it is shown.`,
+    `[pwa-router] A tab that isn't active tried to change "${key}"; it can't until it is selected.`,
   );
 };

@@ -15,12 +15,19 @@ interface RestoredStep {
   state: unknown;
 }
 
-/** The step a back out of a restored entry shows, from the innermost area outwards */
-const findRestoredStep = (from: Location): RestoredStep | undefined => {
+/** The step a back out of a restored entry shows, from the innermost mounted area outwards */
+const findRestoredStep = (
+  from: Location,
+  registeredAreas: ReadonlySet<string>,
+): RestoredStep | undefined => {
   const { record } = readEntry(from.state);
 
   for (let index = record.areas.length - 1; index > 0; index--) {
     const area = record.areas[index];
+
+    /* An area whose TabsRoot isn't mounted has no tab behaviour */
+    if (!registeredAreas.has(area.id)) continue;
+
     const firstReal = findFirstRealIndex(area);
     const current = area.steps.length - 1;
 
@@ -54,19 +61,21 @@ const findRestoredStep = (from: Location): RestoredStep | undefined => {
 };
 
 /** A decider undoing a back out of a restored tab's entry, to show its previous step there */
-const virtualStepDecider: MoveDecider = ({ from, type, delta }) => {
-  if (type !== "POP" || delta !== -1) return undefined;
+const createVirtualStepDecider =
+  (registeredAreas: ReadonlySet<string>): MoveDecider =>
+  ({ from, type, delta }) => {
+    if (type !== "POP" || delta !== -1) return undefined;
 
-  const restored = findRestoredStep(from);
-  if (!restored) return undefined;
+    const restored = findRestoredStep(from, registeredAreas);
+    if (!restored) return undefined;
 
-  return {
-    undo: "traverse",
+    return {
+      undo: "traverse",
 
-    /* Show the step in the restored entry */
-    onLanded: (navigate) =>
-      navigate(restored.to, { replace: true, state: restored.state }),
+      /* Show the step in the restored entry */
+      onLanded: (navigate) =>
+        navigate(restored.to, { replace: true, state: restored.state }),
+    };
   };
-};
 
-export { virtualStepDecider };
+export { createVirtualStepDecider };

@@ -22,7 +22,7 @@ interface PWANavigateFunction {
   (delta: number): void;
 }
 
-/** Engine-aware navigate; ignored while correcting or in a hidden tab, replaces non-inherited entries */
+/** Engine-aware navigate; ignored while correcting or in a tab that isn't active, replaces non-inherited entries */
 const useNavigate = (): PWANavigateFunction => {
   const navigate = useRouterNavigate();
   const routing = usePWARouting();
@@ -39,7 +39,7 @@ const useNavigate = (): PWANavigateFunction => {
     const { navigate, routing, tabsEngine, exitArea } = latestRef.current;
     const { resolvedLocation: location, isCorrecting, isInactive } = routing;
 
-    /* Navigating now would race the engine, or come from a hidden tab */
+    /* Navigating now would race the engine, or come from a tab that isn't active */
     if (isCorrecting || isInactive) return;
 
     if (typeof to === "number") {

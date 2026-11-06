@@ -10,15 +10,14 @@ import type { StepRecord } from "../engine/core/record";
 import { findTab, readStepPath, rootPageStep } from "./core/tabs";
 import { warnHiddenTabChange } from "./tabsWarnings";
 
-/** Props of TabView; other props go to its div */
-interface TabViewProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** The tab this view shows */
+/** Props of TabView */
+interface TabViewProps {
+  /** The tab whose location this view's screens read */
   id: string;
-  /** Keep the view mounted while hidden, so its screens keep their state (default: true) */
-  keepMounted?: boolean;
+  children?: React.ReactNode;
 }
 
-/** A queue that ignores changes from a hidden tab */
+/** A queue that ignores changes from a tab that isn't active */
 const ignoreChange: QueueLocationStateChange = ({ key }) =>
   warnHiddenTabChange(key);
 
@@ -35,21 +34,16 @@ const toLocation = (step: StepRecord, tabId: string) => {
   } as Location;
 };
 
-/** One tab's screens: the real location when live, its saved top step otherwise */
-const TabView = ({
-  id,
-  keepMounted = true,
-  children,
-  ...props
-}: TabViewProps) => {
+/** One tab's screens: the real location when live, its saved top step otherwise; the app lays them out */
+const TabView = ({ id, children }: TabViewProps) => {
   const tabs = useContext(TabsContext)!;
   const routing = usePWARouting();
   const queueChange = useContext(LocationStateTransactionsContext)!;
 
-  /* Shown, and holding the real location */
-  const isShown = tabs.active === id;
+  /* Active (selected), and holding the real location */
+  const isActive = tabs.active === id;
   const isLive = tabs.liveTab === id;
-  const canAct = isShown && isLive;
+  const canAct = isActive && isLive;
 
   /* The tab's saved top step, or its root */
   const savedSteps = tabs.saved[id];
@@ -61,7 +55,7 @@ const TabView = ({
     [savedSteps, config, address, id],
   );
 
-  /* The live view follows the real location; it can't act while hidden */
+  /* The live view follows the real location; it can't act while another tab is being selected */
   const liveRouting = useMemo(
     () => (canAct ? routing : { ...routing, isInactive: true }),
     [canAct, routing],
@@ -86,17 +80,13 @@ const TabView = ({
     [tabs.config.id, id],
   );
 
-  if (!isShown && !keepMounted) return null;
-
   return (
     <TabViewContext.Provider value={place}>
       <PWARoutingContext.Provider value={viewRouting}>
         <LocationStateTransactionsContext.Provider
           value={canAct ? queueChange : ignoreChange}
         >
-          <div {...props} hidden={!isShown}>
-            {children}
-          </div>
+          {children}
         </LocationStateTransactionsContext.Provider>
       </PWARoutingContext.Provider>
     </TabViewContext.Provider>

@@ -108,9 +108,9 @@ const TABS = [
 <TabsRoot id="main" tabs={TABS} defaultTab={TabId.Home}>
   <TabBar />
   {TABS.map(({ id }) => (
-    <TabView key={id} id={id}>
+    <TabPane key={id} id={id}>
       <AppRoutes />
-    </TabView>
+    </TabPane>
   ))}
 </TabsRoot>;
 
@@ -118,6 +118,17 @@ const TABS = [
 const TabBar = () => {
   const { active, select } = useTabs();
   // render buttons calling select(TabId.Search)…
+};
+
+/** A tab's pane, laid out by the app: here, hidden while its tab isn't active */
+const TabPane = ({ id, children }: { id: string; children: React.ReactNode }) => {
+  const { active } = useTabs();
+
+  return (
+    <TabView id={id}>
+      <div hidden={active !== id}>{children}</div>
+    </TabView>
+  );
 };
 ```
 
@@ -166,15 +177,15 @@ const TABS = [{ id: "canvas" }, { id: "items" }, { id: "settings" }];
 
 <TabsRoot id="layout" tabs={TABS} defaultTab="canvas">
   <TabBar />
-  <TabView id="canvas">
+  <TabPane id="canvas">
     <Canvas />
-  </TabView>
-  <TabView id="items">
+  </TabPane>
+  <TabPane id="items">
     <Items />
-  </TabView>
-  <TabView id="settings">
+  </TabPane>
+  <TabPane id="settings">
     <Settings />
-  </TabView>
+  </TabPane>
 </TabsRoot>;
 ```
 
@@ -182,13 +193,12 @@ const TABS = [{ id: "canvas" }, { id: "items" }, { id: "settings" }];
 - **Each tab keeps its layers** the way an app's tab keeps pages: one slot, one push per switch, and back steps through them in one entry.
 - **A link to the page opens the default tab**, with nothing put underneath. Tabs without a `root` are never picked from an address; tabs with one still are, so both kinds can mix.
 
-### Views
+### Views and layout
 
-- **Inactive views stay mounted and hidden**, so screens keep their state and unsaved work across switches, and switching never asks a [leave guard](#useleaveguard). Leaving the tab area (`exitTabs`) does ask, as views unmount.
-- **A hidden view shows its tab's last page.** It can't navigate or change location state, and its location doesn't change while other tabs navigate.
-- **`keepMounted={false}`** on a `TabView` unmounts it while hidden, for heavy screens on low-memory phones. Its screens lose their local state.
-
-`TabView` renders a `div` (hidden while inactive) and passes other props to it, such as `className`.
+- **`TabView` gives a tab's screens their location; the layout is yours.** It renders no element, so show, hide, animate or place the panes however the app needs.
+- **Only the active tab's screens are live.** Every other view reads its tab's last step: it can't navigate or change location state, and its location doesn't change while other tabs navigate.
+- **Panes kept mounted while hidden** keep their screens' state and unsaved work across switches, and a switch never asks a [leave guard](#useleaveguard). Leaving the tab area (`exitTabs`) does ask. A heavy pane can drop its content while its tab isn't active, to save memory on low-end phones; its screens then lose their local state.
+- **A wide layout showing every pane at once** renders them without `TabsRoot`: only one tab can own the current entry. With no `TabsRoot` mounted, the router has no tab behaviour, and back is a plain back.
 
 ## Hooks
 
@@ -474,7 +484,7 @@ const { resolvedLocation, isCorrecting } = usePWARouting();
 
 `isCorrecting` is `true` while the engine is correcting the history: going back to a position, discarding stale non-persistent state, closing a layer from depth, undoing a guarded move, or recording a tab page. Navigations made through this package are ignored meanwhile.
 
-`isInactive` is `true` inside a hidden tab, whose navigations are ignored.
+`isInactive` is `true` inside a tab that isn't active, whose navigations are ignored.
 
 ---
 
@@ -491,7 +501,7 @@ Drop-in replacement for React Router's `useNavigate` that is aware of the provid
 - Calls are ignored while `isCorrecting` is `true`, so they can't race a correction.
 - A push from an entry holding [non-inherited state](#non-inherited-state) replaces that entry (pass `replace` explicitly to override), so back returns to the entry before it.
 - The returned function is stable across navigations.
-- Calls from a hidden tab are ignored.
+- Calls from a tab that isn't active are ignored.
 - Pass `exitTabs: true` to leave the [tabbed area](#tabbed-apps), clearing every tab's history.
 
 ---
@@ -545,7 +555,7 @@ import { LocationStateDefaultsProvider } from "@pwabucket/pwa-router";
 ### `Link` / `NavLink` / `Navigate` / `Routes`
 
 Drop-in replacements for React Router's `Link`, `NavLink`, `Navigate` and `Routes`, with the same props.
-- Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting or from a hidden tab, and pushes from an entry holding non-inherited state replace it.
+- Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting or from a tab that isn't active, and pushes from an entry holding non-inherited state replace it.
 - `Link`, `NavLink` and `Navigate` take `exitTabs` to leave the [tabbed area](#tabbed-apps).
 - `NavLink` matches its active state against `resolvedLocation`.
 - `Navigate` waits for a correction to finish before redirecting.
@@ -574,8 +584,9 @@ See [Tabbed apps](#tabbed-apps).
 
 | `TabView` prop | Type | Description |
 | --- | --- | --- |
-| `id` | `string` | The tab this view shows |
-| `keepMounted` | `boolean?` | Keep the view mounted while hidden (default: `true`) |
+| `id` | `string` | The tab whose location the view's screens read |
+
+`TabView` renders only its children: the app lays out and shows its panes ([views and layout](#views-and-layout)).
 
 Tabbed areas can nest: a `TabsRoot` inside a `TabView` is an area of its own, which lives while its parent tab is shown. Switching the outer tab away and back restores the inner tabs, where they were, at one push. A navigation from the outer tab's page, outside the inner tabs, still counts as a page of the inner area.
 

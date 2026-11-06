@@ -5,13 +5,13 @@ import {
   Route,
   Routes,
   TabsRoot,
-  TabView,
   useLeaveGuard,
   useLocationPopup,
   useLocationState,
   useLocationToggle,
   useTabs,
 } from "../../../src";
+import { TabPane } from "../components/TabPane";
 
 /** The tabs of the area */
 const TABS = [
@@ -205,9 +205,9 @@ const TabbedScenario = () => (
 
     {/* Views */}
     {TABS.map(({ id }) => (
-      <TabView key={id} id={id} data-tab={id}>
+      <TabPane key={id} id={id} data-tab={id}>
         <TabbedRoutes />
-      </TabView>
+      </TabPane>
     ))}
   </TabsRoot>
 );

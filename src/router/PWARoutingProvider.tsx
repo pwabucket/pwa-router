@@ -19,7 +19,7 @@ import { useDestroyIndexHandler } from "../engine/handlers/useDestroyIndexHandle
 import { useEphemeralStateHandler } from "../engine/handlers/useEphemeralStateHandler";
 import { useFromPositionHandler } from "../engine/handlers/useFromPositionHandler";
 import { createGuardDecider } from "../guards/guardDecider";
-import { virtualStepDecider } from "../tabs/virtualStepDecider";
+import { createVirtualStepDecider } from "../tabs/virtualStepDecider";
 import { useMoveWatcher } from "../engine/useMoveWatcher";
 import { useLocationStateTransactions } from "../engine/useLocationStateTransactions";
 import { useNavigateIndexHandler } from "../engine/handlers/useNavigateIndexHandler";
@@ -42,6 +42,9 @@ const PWARoutingProvider = ({
   const tryLock = useCorrectionLock(location.key);
   const [guards] = useState(() => new LeaveGuardRegistry());
   const [work] = useState(() => new EngineWork());
+
+  /* The tab areas whose TabsRoot is mounted right now */
+  const [registeredAreas] = useState(() => new Set<string>());
 
   /* The location kept on show while the engine crosses other entries */
   const [shownLocation, showLocation] = useState<Location | null>(null);
@@ -78,10 +81,13 @@ const PWARoutingProvider = ({
     location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
     location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
 
-  /* The deciders of user moves, in order: guards ask first, then tabs show virtual steps */
+  /* The deciders of user moves, in order: guards ask first, then mounted tabs show virtual steps */
   const deciders = useMemo(
-    () => [createGuardDecider(guards), virtualStepDecider],
-    [guards],
+    () => [
+      createGuardDecider(guards),
+      createVirtualStepDecider(registeredAreas),
+    ],
+    [guards, registeredAreas],
   );
 
   /* User moves a decider asks to undo are undone, with the screen kept on show */
@@ -104,6 +110,7 @@ const PWARoutingProvider = ({
     work,
     hasCorrection || isReverting,
     tryLockAfterEphemeralCleanup,
+    registeredAreas,
   );
   const isCorrecting = hasCorrection || isReverting || tabsHandler.isCorrecting;
 

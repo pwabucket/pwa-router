@@ -2,7 +2,6 @@ import {
   useCallback,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
@@ -80,15 +79,13 @@ const useTabsHandler = (
   work: EngineWork,
   isCorrecting: boolean,
   tryLock: () => boolean,
+  registeredAreas: Set<string>,
 ) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const [configs, setConfigs] = useState<TabsConfig[]>([]);
   const [memories, setMemories] = useState<TabsMemories>({});
   const [tracked, setTracked] = useState<PreviousEntry | null>(null);
-
-  /* The areas registered right now; an area unmounting in this commit writes nothing */
-  const registeredIdsRef = useRef(new Set<string>());
 
   /* The current entry's state and record */
   const { state, record } = useMemo(
@@ -135,23 +132,34 @@ const useTabsHandler = (
     /* Every area in it must still be registered */
     const isStillRegistered = nextRecord.areas
       .slice(1)
-      .every((area) => registeredIdsRef.current.has(area.id));
+      .every((area) => registeredAreas.has(area.id));
     if (!isStillRegistered || !tryLock()) return;
 
     navigate(getLocationPath(location), {
       replace: true,
       state: writeRecord(state, nextRecord),
     });
-  }, [adoptedRecord, syncedRecord, location, state, navigate, tryLock]);
+  }, [
+    adoptedRecord,
+    syncedRecord,
+    location,
+    state,
+    navigate,
+    tryLock,
+    registeredAreas,
+  ]);
 
   /** Registers a tabbed area */
-  const register = useCallback((config: TabsConfig) => {
-    registeredIdsRef.current.add(config.id);
-    setConfigs((current) => [
-      ...current.filter((other) => other.id !== config.id),
-      config,
-    ]);
-  }, []);
+  const register = useCallback(
+    (config: TabsConfig) => {
+      registeredAreas.add(config.id);
+      setConfigs((current) => [
+        ...current.filter((other) => other.id !== config.id),
+        config,
+      ]);
+    },
+    [registeredAreas],
+  );
 
   /** Forgets an area's saved steps and the tracked entry (leaving the area) */
   const reset = useCallback((id: string) => {
@@ -166,11 +174,11 @@ const useTabsHandler = (
   /** Removes a tabbed area; its memory goes with it */
   const unregister = useCallback(
     (id: string) => {
-      registeredIdsRef.current.delete(id);
+      registeredAreas.delete(id);
       setConfigs((current) => current.filter((config) => config.id !== id));
       reset(id);
     },
-    [reset],
+    [registeredAreas, reset],
   );
 
   /* The record to render with: the entry's, or the one it is about to take */
