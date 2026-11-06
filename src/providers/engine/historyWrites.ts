@@ -4,7 +4,7 @@ import { positionPushedStep, type WritePlan } from "../../core/planChanges";
 import { readRecord } from "../../core/record";
 import type { CloseTarget } from "../../core/steps";
 import { getLocationPath } from "../../utils/location";
-import type { TabsWrite } from "../../utils/tabsPlan";
+import type { TabsWrite } from "../../core/planTabs";
 
 /** Goes back to before a position, skipping entries made since (iframes); null goes back one */
 const writeLanding = (
@@ -25,17 +25,12 @@ const writeLanding = (
   }
 };
 
-/** Closes values: lands before their push, or goes back one when unrecorded */
+/** Closes values: lands before their push, or goes back one when unrecorded (virtual pops are written by the transactions) */
 const writeClose = (
   navigate: NavigateFunction,
-  target: CloseTarget,
+  target: Exclude<CloseTarget, { kind: "virtualPop" }>,
   location: Location,
 ) => {
-  /* Virtual steps only exist in tabbed areas, which aren't on the core yet */
-  if (target.kind === "virtualPop") {
-    throw new Error("[pwa-router] Virtual steps need a tabbed area.");
-  }
-
   const landing = target.kind === "land" ? target.before : null;
   writeLanding(navigate, landing, location);
 };

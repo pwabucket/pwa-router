@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { SavedTabPages, TabsConfig } from "../utils/tabs";
+import type { SavedTabSteps, TabsConfig } from "../core/tabs";
 
 /** A tabbed area as seen by its views and controls */
 interface TabsContextValue {
@@ -9,7 +9,7 @@ interface TabsContextValue {
   /** The tab whose page is the real location */
   liveTab: string;
   /** Saved pages of the tabs that aren't active */
-  saved: SavedTabPages;
+  saved: SavedTabSteps;
   /** Switches to a tab; the active one pops to its root */
   select: (tab: string) => void;
   /** Pops the active tab to its root */

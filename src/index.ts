@@ -65,7 +65,7 @@ export { TabView } from "./components/tabs/TabView";
 export type { TabViewProps } from "./components/tabs/TabView";
 export { useTabs } from "./hooks/useTabs";
 export type { TabsControls } from "./hooks/useTabs";
-export type { TabDefinition } from "./utils/tabs";
+export type { TabDefinition } from "./core/tabs";
 
 export { useNavigateBack } from "./hooks/useNavigateBack";
 

@@ -7,10 +7,6 @@ export const ROUTER_FROM_POSITION = "__router_from_position";
 export const ROUTER_DESTROY_INDEX = "__router_destroy_index";
 /** Jump to the entry before this stamped index */
 export const ROUTER_NAVIGATE_INDEX = "__router_navigate_index";
-/** The leave guard whose question is open */
-export const ROUTER_GUARD = "__router_guard";
-/** The tabbed area data of an entry, written by the engine */
-export const ROUTER_TABS = "__router_tabs";
 
 /** Root element attribute holding the engine's status, set by RouterStatusProbe */
 export const ROUTER_STATUS_ATTRIBUTE = "data-pwa-router-correcting";

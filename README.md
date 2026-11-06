@@ -612,7 +612,7 @@ So apps can import routing from this package alone, these React Router exports a
 - The setter's third `index` argument is removed. To go back before a value's first push, clear it with `{ toStart: true }`. To close several layers, clear the lowest one: everything above closes with it.
 - Hand-written "replace instead of add" options and lists of keys to clear on close can go. Close one layer and open another in the same tick, and the new one takes its place.
 - Hand-written leave guards built on hidden entries can be replaced with [`useLeaveGuard`](#useleaveguard).
-- `routerState.ephemeral`, `routerState.nonInherited`, `ephemeralKeys`, `nonInheritedKeys` and the `ROUTER_EPHEMERAL_KEYS` / `ROUTER_NON_INHERITED_KEYS` constants are removed: the engine keeps its data under one `__router` key. Entries written by 0.0.25 are still read after an upgrade.
+- `routerState.ephemeral`, `routerState.nonInherited`, `ephemeralKeys`, `nonInheritedKeys` and the internal `ROUTER_EPHEMERAL_KEYS`, `ROUTER_NON_INHERITED_KEYS`, `ROUTER_GUARD` and `ROUTER_TABS` constants are removed: the engine keeps its data under one `__router` key. Entries written by 0.0.25 are still read after an upgrade.
 
 ## Types
 

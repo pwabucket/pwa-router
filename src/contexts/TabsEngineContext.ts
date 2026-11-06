@@ -1,13 +1,15 @@
 import { createContext } from "react";
 import type { QueueTabsOp } from "../providers/engine/useLocationStateTransactions";
-import type { TabsConfig, TabsEntryState } from "../utils/tabs";
-import type { TabsMemory } from "../utils/tabsPlan";
+import type { AreaRecord, EntryRecord } from "../core/record";
+import type { TabsConfig, TabsMemory } from "../core/tabs";
 
 /** The engine side of a tabbed area, consumed by TabsRoot */
 interface TabsEngineContextValue {
   config: TabsConfig | null;
-  /** The tabs data of the current entry, or the one it is about to take */
-  tabs: TabsEntryState | undefined;
+  /** The tab area of the current entry, or the one it is about to take */
+  area: AreaRecord | undefined;
+  /** The current entry's record */
+  record: EntryRecord;
   /** The latest saved pages of the tabs that aren't active */
   memory: TabsMemory;
   /** The tab being switched to, shown at once */

@@ -1,9 +1,9 @@
 import type { Location } from "react-router";
-import { ROUTER_GUARD, ROUTER_TABS } from "../constants";
+
 import type { ChangesPlan, PlanEntry, ValueChange } from "../core/planChanges";
 import { readValuePosition } from "../core/queries";
-import type { TabsEntryState } from "./tabs";
-import type { TabsOp } from "./tabsPlan";
+import type { TabsOp } from "../core/planTabs";
+import { readActiveTab } from "../core/tabs";
 
 
 /** A registered leave guard */
@@ -27,10 +27,12 @@ type BlockedAttempt =
   | { kind: "changes"; guardId: string; changes: ValueChange[] }
   | { kind: "tabs"; guardId: string; op: TabsOp };
 
+/** The location state key holding the guard whose question is open */
+export const ROUTER_GUARD = "__router_guard";
+
 /** The guard's scope holds the location: its tab, then its layer or page */
 const isInside = (guard: LeaveGuard, location: Partial<Location>) => {
-  const tabs = location.state?.[ROUTER_TABS] as TabsEntryState | undefined;
-  const activeTab = tabs?.active;
+  const activeTab = readActiveTab(location.state);
   if (guard.tab && activeTab && activeTab !== guard.tab) return false;
 
   return guard.key

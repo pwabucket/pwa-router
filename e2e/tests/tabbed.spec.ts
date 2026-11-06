@@ -208,7 +208,10 @@ test.describe("tabbed app", () => {
     const outside = await follow(page, "Plain link out");
 
     expect(outside.path).toBe("/plain");
-    expect(outside.state?.__router_tabs).toBeUndefined();
+    const record = outside.state?.__router as
+      | { areas: { id: string }[] }
+      | undefined;
+    expect(record?.areas.map((area) => area.id) ?? []).not.toContain("main");
   });
 
   test("two quick taps end on the second tab", async ({ page }) => {

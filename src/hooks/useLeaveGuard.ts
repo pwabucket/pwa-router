@@ -8,13 +8,12 @@ import {
   useRef,
 } from "react";
 import { useNavigate } from "react-router";
-import { ROUTER_GUARD } from "../constants";
 import { LeaveGuardsContext } from "../contexts/LeaveGuardsContext";
 import { LocationStateTransactionsContext } from "../contexts/LocationStateTransactionsContext";
 import { TabsEngineContext } from "../contexts/TabsEngineContext";
 import { TabViewContext } from "../contexts/TabViewContext";
 import { readHistoryIndex } from "../utils/history";
-import { questionChange } from "../utils/leaveGuards";
+import { ROUTER_GUARD, questionChange } from "../utils/leaveGuards";
 import { getLocationPath } from "../utils/location";
 import { useLocation } from "./useLocation";
 

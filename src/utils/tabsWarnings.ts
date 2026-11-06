@@ -1,4 +1,4 @@
-import type { TabsConfig } from "./tabs";
+import type { TabsConfig } from "../core/tabs";
 
 /* Set by the app's bundler; read at runtime so the library build keeps it */
 declare const process: { env: { NODE_ENV?: string } };

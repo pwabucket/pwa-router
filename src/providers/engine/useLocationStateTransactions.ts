@@ -7,14 +7,21 @@ import {
   questionChange,
   type LeaveGuardRegistry,
 } from "../../utils/leaveGuards";
-import type { TabsConfig, TabsEntryState } from "../../utils/tabs";
 import {
   planTabsOp,
+  popToStep,
   readWriteLocation,
-  type TabsMemory,
   type TabsOp,
   type TabsPlan,
-} from "../../utils/tabsPlan";
+  type TabsWrite,
+} from "../../core/planTabs";
+import {
+  findArea,
+  type AreaRecord,
+  type EntryRecord,
+} from "../../core/record";
+import type { CloseTarget } from "../../core/steps";
+import type { TabsConfig, TabsMemory } from "../../core/tabs";
 import type { EngineWork } from "./EngineWork";
 import {
   writeChanges,
@@ -36,7 +43,8 @@ type QueueTabsOp = (op: TabsOp) => void;
 /** What the transactions need from the tabbed area */
 interface TabsBinding {
   config: TabsConfig | null;
-  tabs: TabsEntryState | undefined;
+  area: AreaRecord | undefined;
+  record: EntryRecord;
   memory: TabsMemory;
   reset: () => void;
 }
@@ -128,11 +136,15 @@ const useLocationStateTransactions = (
   /** Sends a tab operation; false when nothing was sent */
   const sendTabsOp = useCallback(
     (op: TabsOp, location: Location) => {
-      const { config, tabs, memory, reset } = latestRef.current.tabsBinding;
+      const { config, area, record, memory, reset } =
+        latestRef.current.tabsBinding;
 
       /* Nothing to do: the operation is over */
+      const entry = area && { location, record, area };
       const plan =
-        config && tabs && planTabsOp(op, config, location, tabs, memory);
+        config &&
+        entry &&
+        planTabsOp(op, config, entry, memory, createStepId);
       if (!plan) {
         endTabsOp();
         return false;
@@ -156,6 +168,39 @@ const useLocationStateTransactions = (
       return true;
     },
     [endTabsOp, findTabsBlocker, guards, runTabsPlan],
+  );
+
+  /** Closes onto a virtual step: land on the tab's lowest real entry if needed, then replace it */
+  const writeVirtualPop = useCallback(
+    (
+      target: Extract<CloseTarget, { kind: "virtualPop" }>,
+      location: Location,
+    ) => {
+      const { navigate } = latestRef.current;
+      const { record } = readEntry(location.state);
+      const area = findArea(record, target.area)!;
+
+      /* The step, shown in the lowest real entry */
+      const write: TabsWrite = {
+        to: {
+          pathname: target.step.snapshot?.pathname ?? location.pathname,
+          search: target.step.snapshot?.search ?? "",
+          hash: target.step.snapshot?.hash ?? "",
+        },
+        replace: true,
+        stamp: target.position,
+        buildState: () =>
+          popToStep(area, record, target.step.id, target.position),
+      };
+
+      if (target.landBefore === null) {
+        writeTabsEntry(navigate, write);
+      } else {
+        intentsRef.current.continueWith(write);
+        writeLanding(navigate, target.landBefore, location);
+      }
+    },
+    [],
   );
 
   /** Sends value changes as one transaction; false when nothing was sent */
@@ -191,7 +236,12 @@ const useLocationStateTransactions = (
           undefined,
         ]);
         markSent(new Map(closed), location);
-        writeClose(navigate, plan.target, location);
+
+        if (plan.target.kind === "virtualPop") {
+          writeVirtualPop(plan.target, location);
+        } else {
+          writeClose(navigate, plan.target, location);
+        }
         return true;
       }
 
@@ -204,7 +254,7 @@ const useLocationStateTransactions = (
       writeChanges(navigate, plan, location);
       return true;
     },
-    [guards, markSent],
+    [guards, markSent, writeVirtualPop],
   );
 
   /** Sends intents in order until one navigates, when nothing is in flight */

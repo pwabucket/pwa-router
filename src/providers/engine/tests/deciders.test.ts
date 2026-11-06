@@ -1,6 +1,10 @@
 import { NavigationType, type Location } from "react-router";
 import { describe, expect, it, vi } from "vitest";
-import { ROUTER_TABS } from "../../../constants";
+import {
+  ROUTER_RECORD,
+  createArea,
+  createRecord,
+} from "../../../core/record";
 import { LeaveGuardRegistry } from "../../../utils/leaveGuards";
 import { createGuardDecider } from "../deciders/guardDecider";
 import type { UserMove } from "../deciders/types";
@@ -61,11 +65,29 @@ describe("guard decider", () => {
 describe("virtual page decider", () => {
   /** A restored tab entry with one virtual page below */
   const restored = at("/search/results", {
-    [ROUTER_TABS]: {
-      pages: [{ pathname: "/search", search: "", hash: "", state: {} }],
-      virtual: 1,
-      slot: 4,
-      stamp: 4,
+    [ROUTER_RECORD]: {
+      values: {},
+      areas: [
+        createRecord().areas[0],
+        {
+          ...createArea("main", "search", 1, 0),
+          steps: [
+            {
+              id: "search",
+              kind: "page",
+              position: null,
+              snapshot: {
+                pathname: "/search",
+                search: "",
+                hash: "",
+                values: {},
+                record: { values: {}, areas: [] },
+              },
+            },
+            { id: "results", kind: "page", position: 4 },
+          ],
+        },
+      ],
     },
   });
 

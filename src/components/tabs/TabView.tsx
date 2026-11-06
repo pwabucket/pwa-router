@@ -6,7 +6,8 @@ import { TabsContext } from "../../contexts/TabsContext";
 import { TabViewContext } from "../../contexts/TabViewContext";
 import { usePWARouting } from "../../hooks/usePWARouting";
 import type { QueueLocationStateChange } from "../../providers/engine/useLocationStateTransactions";
-import { findTab, rootPage, type TabPage } from "../../utils/tabs";
+import type { StepRecord } from "../../core/record";
+import { findTab, readPagePath, rootPageStep } from "../../core/tabs";
 import { warnHiddenTabChange } from "../../utils/tabsWarnings";
 
 interface TabViewProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -21,14 +22,17 @@ const ignoreChange: QueueLocationStateChange = ({ key }) =>
   warnHiddenTabChange(key);
 
 /** A saved page as a location; it never changes while the page stays the same */
-const toLocation = (page: TabPage, tabId: string) =>
-  ({
-    pathname: page.pathname,
-    search: page.search,
-    hash: page.hash,
-    state: page.state,
-    key: `${tabId}:${page.pathname}${page.search}${page.hash}`,
-  }) as Location;
+const toLocation = (page: StepRecord, tabId: string) => {
+  const { pathname, search, hash } = readPagePath(page);
+
+  return {
+    pathname,
+    search,
+    hash,
+    state: page.snapshot?.values ?? {},
+    key: `${tabId}:${pathname}${search}${hash}`,
+  } as Location;
+};
 
 /** One tab's screens: the real location when live, its saved top page otherwise */
 const TabView = ({
@@ -48,8 +52,12 @@ const TabView = ({
 
   /* The tab's saved top page, or its root */
   const savedPages = tabs.saved[id];
-  const savedPage =
-    savedPages?.[savedPages.length - 1] ?? rootPage(findTab(tabs.config, id));
+  const savedPage = useMemo(
+    () =>
+      savedPages?.[savedPages.length - 1] ??
+      rootPageStep(findTab(tabs.config, id), `${id}:root`),
+    [savedPages, tabs.config, id],
+  );
 
   /* The live view follows the real location; it can't act while hidden */
   const liveRouting = useMemo(

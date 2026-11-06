@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ValueChange } from "../../../core/planChanges";
-import type { TabsWrite } from "../../../utils/tabsPlan";
+import type { TabsWrite } from "../../../core/planTabs";
 import { IntentQueue } from "../IntentQueue";
 
 /** A change with default flags */

@@ -10,9 +10,9 @@ import { TabsEngineContext } from "../../contexts/TabsEngineContext";
 import { usePWARouting } from "../../hooks/usePWARouting";
 import {
   matchTab,
-  readTabsState,
+  readTabsArea,
   type TabDefinition,
-} from "../../utils/tabs";
+} from "../../core/tabs";
 import { warnInvalidTabs } from "../../utils/tabsWarnings";
 
 interface TabsRootProps {
@@ -49,9 +49,9 @@ const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
 
   /* The tab of the location on show, and the tab being shown */
   const isRegistered = engine.config?.id === id;
-  const engineTab = isRegistered ? engine.tabs?.active : undefined;
+  const engineTab = isRegistered ? engine.area?.active : undefined;
   const liveTab =
-    readTabsState(resolvedLocation.state, id)?.active ??
+    readTabsArea(resolvedLocation.state, id)?.area.active ??
     engineTab ??
     matchTab(config, resolvedLocation.pathname);
   const active = engine.pendingTab ?? liveTab;

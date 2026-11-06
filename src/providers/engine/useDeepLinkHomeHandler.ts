@@ -2,9 +2,11 @@ import { useEffect, useRef } from "react";
 import { useNavigate, type Location, type To } from "react-router";
 import { readHistoryIndex } from "../../utils/history";
 import { getLocationPath } from "../../utils/location";
-import type { TabsConfig, TabsEntryState } from "../../utils/tabs";
+import { planBackfill } from "../../core/planTabs";
+import type { AreaRecord, EntryRecord } from "../../core/record";
+import { createStepId } from "../../core/stepIds";
+import { readPagePosition, type TabsConfig } from "../../core/tabs";
 import type { EngineWork } from "./EngineWork";
-import { planBackfill } from "../../utils/tabsPlan";
 
 /** Events that give the page a user activation */
 const ACTIVATION_EVENTS = ["click", "keydown"] as const;
@@ -12,7 +14,8 @@ const ACTIVATION_EVENTS = ["click", "keydown"] as const;
 /** The tabbed area, when one is registered */
 interface DeepLinkTabs {
   config: TabsConfig | null;
-  tabs: TabsEntryState | undefined;
+  area: AreaRecord | undefined;
+  record: EntryRecord;
 }
 
 /** An entry to write under (and as) the first entry */
@@ -25,14 +28,14 @@ interface BackfillEntry {
 const planEntries = (
   homePath: string | undefined,
   location: Location,
-  { config, tabs }: DeepLinkTabs,
+  { config, area, record }: DeepLinkTabs,
 ): BackfillEntry[] | null => {
   if (readHistoryIndex() !== 0) return null;
 
   /* A tabbed area's first entry: the default root and the tab's root go below */
   if (config) {
-    return tabs && tabs.stamp === tabs.base
-      ? planBackfill(config, location, tabs)
+    return area && readPagePosition(area) === area.start
+      ? planBackfill(config, { location, record, area }, createStepId)
       : null;
   }
 
