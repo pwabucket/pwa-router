@@ -1,0 +1,52 @@
+{
+  "open a dialog": {
+    "push": 1,
+    "replace": 1,
+    "go": 0
+  },
+  "close a dialog": {
+    "push": 0,
+    "replace": 0,
+    "go": 1
+  },
+  "close from depth": {
+    "push": 1,
+    "replace": 1,
+    "go": 1
+  },
+  "swap a menu for a dialog": {
+    "push": 1,
+    "replace": 1,
+    "go": 1
+  },
+  "type one letter in place": {
+    "push": 0,
+    "replace": 1,
+    "go": 0
+  },
+  "switch tab": {
+    "push": 1,
+    "replace": 1,
+    "go": 0
+  },
+  "restore a tab": {
+    "push": 1,
+    "replace": 1,
+    "go": 1
+  },
+  "back through a restored page": {
+    "push": 0,
+    "replace": 1,
+    "go": 1
+  },
+  "back from a guarded page, then stay": {
+    "push": 1,
+    "replace": 1,
+    "go": 2
+  },
+  "close a guarded layer": {
+    "push": 1,
+    "replace": 1,
+    "go": 0
+  }
+}

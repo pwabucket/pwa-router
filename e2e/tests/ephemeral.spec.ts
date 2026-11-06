@@ -12,4 +12,17 @@ test.describe("ephemeral", () => {
     expect(reloaded.index).toBe(start.index);
     await expect(page.getByText("Dialog closed")).toBeVisible();
   });
+
+  test("stale layers two deep are closed after a reload", async ({ page }) => {
+    /* Open two non-persistent layers, then reload */
+    const start = await visit(page, "/nested-ephemeral");
+    await press(page, "Open outer");
+    await press(page, "Open inner");
+    const reloaded = await reload(page);
+
+    /* Both are gone and so are their entries */
+    expect(reloaded.index).toBe(start.index);
+    await expect(page.getByText("Outer closed")).toBeVisible();
+    await expect(page.getByText("Inner closed")).toBeVisible();
+  });
 });

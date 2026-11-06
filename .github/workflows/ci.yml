@@ -27,6 +27,7 @@ jobs:
             - run: pnpm install --frozen-lockfile
             - run: pnpm lint
             - run: pnpm build
+            - run: pnpm api:check
             - run: pnpm typecheck:rr8
 
             # Back-gesture flows on React Router 7 and 8
