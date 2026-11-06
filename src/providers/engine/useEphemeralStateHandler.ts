@@ -5,7 +5,7 @@ import {
   type Location,
 } from "react-router";
 import { routerState } from "../../constants";
-import { readEntry } from "../../core/legacy";
+import { readEntry } from "../../core/record";
 import {
   readNonPersistentKeys,
   readValuePosition,

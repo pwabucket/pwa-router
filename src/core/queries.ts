@@ -1,9 +1,9 @@
-import { readEntry } from "./legacy";
 import {
-  findArea,
-  writeRecord,
   type EntryRecord,
+  findArea,
+  readEntry,
   type StepId,
+  writeRecord,
 } from "./record";
 import { findStepIndex, pruneSteps } from "./steps";
 
@@ -56,7 +56,7 @@ export const removeValues = (state: unknown, keys: string[]) => {
 };
 
 /** The pushed values (layers) of an entry */
-export const readLayerKeys = (state: unknown) => {
+const readLayerKeys = (state: unknown) => {
   const { state: values, record } = readEntry(state);
   return Object.keys(record.values).filter(
     (key) => record.values[key].latest !== undefined && values[key] != null,

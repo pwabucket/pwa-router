@@ -106,6 +106,14 @@ export const readRecord = (state: unknown) => {
   return record as EntryRecord | undefined;
 };
 
+/** An entry's state and record; a state without one gets an empty record */
+export const readEntry = (
+  state: unknown,
+): { state: Record<string, unknown>; record: EntryRecord } => {
+  const current = (state as Record<string, unknown> | null | undefined) ?? {};
+  return { state: current, record: readRecord(current) ?? createRecord() };
+};
+
 /** A location state with the record written into it */
 export const writeRecord = (
   state: Record<string, unknown>,

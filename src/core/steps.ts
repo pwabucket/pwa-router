@@ -11,20 +11,17 @@ import {
 } from "./record";
 
 /** The address of a location */
-export interface Address {
+interface Address {
   pathname: string;
   search: string;
   hash: string;
 }
 
 /** Which values a saved step keeps; by default in-place values only (no layers) */
-export type KeepValue = (value: ValueRecord | undefined) => boolean;
+type KeepValue = (value: ValueRecord | undefined) => boolean;
 
 /** Keeps in-place and unrecorded values, drops pushed ones (layers) */
-export const keepInPlaceValues: KeepValue = (value) => !value?.latest;
-
-/** The most steps a tab keeps */
-export const MAX_TAB_STEPS = 50;
+const keepInPlaceValues: KeepValue = (value) => !value?.latest;
 
 /** Where a close lands */
 export type CloseTarget =
@@ -146,7 +143,7 @@ export const collapseSteps = (
   );
 
 /** An inner area restored into one entry: its current step takes it, every other step is virtual */
-export const collapseArea = (
+const collapseArea = (
   area: AreaRecord,
   position: number,
 ): AreaRecord => {
@@ -171,9 +168,6 @@ export const collapseSnapshot = (
   ...snapshot.record,
   areas: snapshot.record.areas.map((area) => collapseArea(area, position)),
 });
-
-/** Steps kept within the cap, dropping the lowest */
-export const capSteps = (steps: StepRecord[]) => steps.slice(-MAX_TAB_STEPS);
 
 /** An area keeps its page steps, and the layer steps its values point at */
 export const pruneSteps = (

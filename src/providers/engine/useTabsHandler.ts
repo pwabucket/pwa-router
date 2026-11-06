@@ -10,13 +10,17 @@ import {
   useNavigationType,
   type Location,
 } from "react-router";
-import { readEntry } from "../../core/legacy";
 import {
   adoptAreas,
   settleMemory,
   type PreviousEntry,
 } from "../../core/planTabs";
-import { findArea, writeRecord, type EntryRecord } from "../../core/record";
+import {
+  type EntryRecord,
+  findArea,
+  readEntry,
+  writeRecord,
+} from "../../core/record";
 import { createStepId } from "../../core/stepIds";
 import type { TabsConfig, TabsMemory } from "../../core/tabs";
 import { readHistoryIndex } from "../../utils/history";

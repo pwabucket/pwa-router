@@ -43,12 +43,12 @@ export interface PlanEntry {
 }
 
 /** Nothing to navigate */
-export interface NonePlan {
+interface NonePlan {
   kind: "none";
 }
 
 /** Close the cleared values, then apply the rest where it lands */
-export interface ClosePlan {
+interface ClosePlan {
   kind: "close";
   keys: string[];
   target: CloseTarget;
@@ -56,7 +56,7 @@ export interface ClosePlan {
 }
 
 /** A step to position once its push lands */
-export interface PositionStep {
+interface PositionStep {
   area: string;
   step: StepId;
 }

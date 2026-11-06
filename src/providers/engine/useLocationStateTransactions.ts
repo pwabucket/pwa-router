@@ -1,6 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, type Location } from "react-router";
-import { readEntry } from "../../core/legacy";
 import { planChanges, type ValueChange } from "../../core/planChanges";
 import { createStepId } from "../../core/stepIds";
 import {
@@ -15,7 +14,11 @@ import {
   type TabsPlan,
   type TabsWrite,
 } from "../../core/planTabs";
-import { findArea, type EntryRecord } from "../../core/record";
+import {
+  type EntryRecord,
+  findArea,
+  readEntry,
+} from "../../core/record";
 import type { CloseTarget } from "../../core/steps";
 import type { TabsConfig, TabsMemory } from "../../core/tabs";
 import type { EngineWork } from "./EngineWork";

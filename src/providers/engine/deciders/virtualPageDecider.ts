@@ -1,5 +1,5 @@
 import type { Location } from "react-router";
-import { readEntry } from "../../../core/legacy";
+import { readEntry } from "../../../core/record";
 import {
   isDefaultCollapsed,
   popToStep,

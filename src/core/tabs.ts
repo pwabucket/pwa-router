@@ -1,11 +1,11 @@
 import type { Location } from "react-router";
-import { readEntry } from "./legacy";
 import {
-  findArea,
-  writeRecord,
   type AreaRecord,
   type EntryRecord,
+  findArea,
+  readEntry,
   type StepRecord,
+  writeRecord,
 } from "./record";
 import { collapseSnapshot, pruneSteps, snapshotStep } from "./steps";
 
@@ -53,7 +53,7 @@ export const readPageSteps = (area: AreaRecord) =>
   area.steps.filter((step) => step.kind === "page");
 
 /** The current page's step: the area's highest page step */
-export const readCurrentPage = (area: AreaRecord) => {
+const readCurrentPage = (area: AreaRecord) => {
   const pages = readPageSteps(area);
   return pages[pages.length - 1];
 };

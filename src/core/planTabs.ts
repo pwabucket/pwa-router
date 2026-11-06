@@ -3,7 +3,6 @@ import { hasLayersAbove } from "./queries";
 import {
   createArea,
   findArea,
-  writeRecord,
   type AreaRecord,
   type EntryRecord,
   type StepId,
@@ -49,7 +48,7 @@ export interface TabsPlan {
 }
 
 /** The current tabbed area of an entry, the entry's record, and its location */
-export interface TabsEntry {
+interface TabsEntry {
   location: Location;
   record: EntryRecord;
   area: AreaRecord;
@@ -315,12 +314,6 @@ export const adoptTabs = (
   };
 };
 
-/** A record with a tab area set: replaced in place, or added as the innermost */
-export const withArea = (record: EntryRecord, area: AreaRecord) => ({
-  ...record,
-  areas: [...record.areas.filter((other) => other.id !== area.id), area],
-});
-
 /** The saved pages after an entry settles: newer history wins, a tab change saves the left tab */
 export const settleMemory = (
   memory: TabsMemory,
@@ -427,12 +420,6 @@ export const planBackfill = (
   });
 };
 
-/** The record's values and areas, to replace an entry with a recorded area */
-export const writeArea = (
-  state: Record<string, unknown>,
-  record: EntryRecord,
-  area: AreaRecord,
-) => writeRecord(state, withArea(record, area));
 
 /** Configs ordered outer first: an area's parent comes before it */
 export const orderConfigs = (configs: TabsConfig[]) => {

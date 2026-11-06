@@ -30,6 +30,7 @@
     }
   },
   "license": "MIT",
+  "sideEffects": false,
   "files": [
     "dist"
   ],
