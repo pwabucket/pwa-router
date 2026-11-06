@@ -10,11 +10,9 @@ import {
   useNavigationType,
   type Location,
 } from "react-router";
-import {
-  adoptAreas,
-  settleMemory,
-  type PreviousEntry,
-} from "./core/planTabs";
+import { adoptAreas } from "./core/adoptAreas";
+import { settleMemory } from "./core/settleMemory";
+import type { PreviousEntry } from "./core/tabs";
 import {
   type EntryRecord,
   findArea,

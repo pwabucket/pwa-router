@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { TabsContext } from "./TabsContext";
 import { TabsEngineContext } from "./TabsEngineContext";
-import { orderConfigs } from "./core/planTabs";
+import { orderConfigs } from "./core/tabs";
 
 /** A hook for the tabbed area exitTabs leaves: the nearest one, or the outermost registered */
 const useExitArea = () => {

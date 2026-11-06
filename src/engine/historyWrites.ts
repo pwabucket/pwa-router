@@ -1,10 +1,11 @@
 import type { Location, NavigateFunction } from "react-router";
 import { routerState } from "../constants";
 import { positionPushedStep, type WritePlan } from "./core/planChanges";
-import { readRecord } from "./core/record";
+import { findArea, readEntry, readRecord } from "./core/record";
 import type { CloseTarget } from "./core/steps";
 import { getLocationPath } from "../utils/location";
-import type { TabsWrite } from "../tabs/core/planTabs";
+import type { TabsWrite } from "../tabs/core/planTabsOp";
+import { popToStep } from "../tabs/core/restoreSteps";
 
 /** Goes back to before a position, skipping entries made since (iframes); null goes back one */
 const writeLanding = (
@@ -89,4 +90,41 @@ const writeTabsEntry = (navigate: NavigateFunction, write: TabsWrite) => {
   }
 };
 
-export { writeChanges, writeClose, writeLanding, writeTabsEntry };
+/** Closes onto a virtual step: lands on the tab's lowest real entry if needed, then shows the step there */
+const writeVirtualPop = (
+  navigate: NavigateFunction,
+  target: Extract<CloseTarget, { kind: "virtualPop" }>,
+  location: Location,
+  continueWith: (write: TabsWrite) => void,
+) => {
+  const { record } = readEntry(location.state);
+  const area = findArea(record, target.area)!;
+
+  /* The step, shown in the lowest real entry */
+  const write: TabsWrite = {
+    to: {
+      pathname: target.step.snapshot?.pathname ?? location.pathname,
+      search: target.step.snapshot?.search ?? "",
+      hash: target.step.snapshot?.hash ?? "",
+    },
+    replace: true,
+    stamp: target.position,
+    buildState: () => popToStep(area, record, target.step.id, target.position),
+  };
+
+  /* Already on that entry: write it now; otherwise land first, then write */
+  if (target.landBefore === null) {
+    writeTabsEntry(navigate, write);
+  } else {
+    continueWith(write);
+    writeLanding(navigate, target.landBefore, location);
+  }
+};
+
+export {
+  writeChanges,
+  writeClose,
+  writeLanding,
+  writeTabsEntry,
+  writeVirtualPop,
+};

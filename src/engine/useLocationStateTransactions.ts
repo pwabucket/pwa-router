@@ -8,18 +8,10 @@ import {
 } from "../guards/LeaveGuardRegistry";
 import {
   planTabsOp,
-  popToStep,
-  readWriteLocation,
   type TabsOp,
   type TabsPlan,
-  type TabsWrite,
-} from "../tabs/core/planTabs";
-import {
-  type EntryRecord,
-  findArea,
-  readEntry,
-} from "./core/record";
-import type { CloseTarget } from "./core/steps";
+} from "../tabs/core/planTabsOp";
+import { type EntryRecord, findArea, readEntry } from "./core/record";
 import type { TabsConfig, TabsMemory } from "../tabs/core/tabs";
 import type { EngineWork } from "./EngineWork";
 import {
@@ -27,6 +19,7 @@ import {
   writeClose,
   writeLanding,
   writeTabsEntry,
+  writeVirtualPop,
 } from "./historyWrites";
 import { IntentQueue } from "./IntentQueue";
 
@@ -124,16 +117,6 @@ const useLocationStateTransactions = (
     [markSent, work],
   );
 
-  /** The guard a tab plan would leave, if any */
-  const findTabsBlocker = useCallback(
-    (op: TabsOp, plan: TabsPlan, location: Location) => {
-      if (op.kind === "exit") return guards.findAnyActive();
-      if (op.kind === "select" || !plan.write) return undefined;
-      return guards.findLeavingMove(location, readWriteLocation(plan.write));
-    },
-    [guards],
-  );
-
   /** Sends a tab operation; false when nothing was sent */
   const sendTabsOp = useCallback(
     (op: TabsOp, location: Location) => {
@@ -157,7 +140,7 @@ const useLocationStateTransactions = (
       }
 
       /* A move losing unsaved work waits; its question opens instead */
-      const blockedGuardId = findTabsBlocker(op, plan, location);
+      const blockedGuardId = guards.findLeavingTabsOp(op, plan, location);
 
       if (blockedGuardId) {
         const question = questionChange(blockedGuardId);
@@ -173,40 +156,7 @@ const useLocationStateTransactions = (
       runTabsPlan(plan, location);
       return true;
     },
-    [endTabsOp, findTabsBlocker, guards, runTabsPlan],
-  );
-
-  /** Closes onto a virtual step: land on the tab's lowest real entry if needed, then replace it */
-  const writeVirtualPop = useCallback(
-    (
-      target: Extract<CloseTarget, { kind: "virtualPop" }>,
-      location: Location,
-    ) => {
-      const { navigate } = latestRef.current;
-      const { record } = readEntry(location.state);
-      const area = findArea(record, target.area)!;
-
-      /* The step, shown in the lowest real entry */
-      const write: TabsWrite = {
-        to: {
-          pathname: target.step.snapshot?.pathname ?? location.pathname,
-          search: target.step.snapshot?.search ?? "",
-          hash: target.step.snapshot?.hash ?? "",
-        },
-        replace: true,
-        stamp: target.position,
-        buildState: () =>
-          popToStep(area, record, target.step.id, target.position),
-      };
-
-      if (target.landBefore === null) {
-        writeTabsEntry(navigate, write);
-      } else {
-        intentsRef.current.continueWith(write);
-        writeLanding(navigate, target.landBefore, location);
-      }
-    },
-    [],
+    [endTabsOp, guards, runTabsPlan],
   );
 
   /** Sends value changes as one transaction; false when nothing was sent */
@@ -248,7 +198,9 @@ const useLocationStateTransactions = (
         markSent(new Map(closed), location);
 
         if (plan.target.kind === "virtualPop") {
-          writeVirtualPop(plan.target, location);
+          writeVirtualPop(navigate, plan.target, location, (write) =>
+            intentsRef.current.continueWith(write),
+          );
         } else {
           writeClose(navigate, plan.target, location);
         }
@@ -264,7 +216,7 @@ const useLocationStateTransactions = (
       writeChanges(navigate, plan, location);
       return true;
     },
-    [guards, markSent, writeVirtualPop],
+    [guards, markSent],
   );
 
   /** Sends intents in order until one navigates, when nothing is in flight */

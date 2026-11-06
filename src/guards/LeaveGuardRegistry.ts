@@ -1,8 +1,16 @@
 import type { Location } from "react-router";
 
-import type { ChangesPlan, PlanEntry, ValueChange } from "../engine/core/planChanges";
+import type {
+  ChangesPlan,
+  PlanEntry,
+  ValueChange,
+} from "../engine/core/planChanges";
 import { readValuePosition } from "../engine/core/queries";
-import type { TabsOp } from "../tabs/core/planTabs";
+import {
+  readWriteLocation,
+  type TabsOp,
+  type TabsPlan,
+} from "../tabs/core/planTabsOp";
 import { readActiveTab } from "../tabs/core/tabs";
 
 
@@ -145,6 +153,13 @@ class LeaveGuardRegistry {
       if (isActive(guard)) return id;
     }
     return undefined;
+  }
+
+  /** The guard a tab operation leaves: any active one on exit, none on a switch, else the one its write leaves */
+  findLeavingTabsOp(op: TabsOp, plan: TabsPlan, location: Location) {
+    if (op.kind === "exit") return this.findAnyActive();
+    if (op.kind === "select" || !plan.write) return undefined;
+    return this.findLeavingMove(location, readWriteLocation(plan.write));
   }
 
   /** The first active layer guard that a transaction plan leaves */

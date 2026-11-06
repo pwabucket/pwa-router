@@ -1,5 +1,5 @@
 import type { ValueChange } from "./core/planChanges";
-import type { TabsOp, TabsWrite } from "../tabs/core/planTabs";
+import type { TabsOp, TabsWrite } from "../tabs/core/planTabsOp";
 
 /** The next piece of work the engine sends */
 type Intent =

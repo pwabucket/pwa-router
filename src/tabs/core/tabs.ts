@@ -41,6 +41,19 @@ export interface TabsMemory {
   saved: SavedTabSteps;
 }
 
+/** The previous settled entry */
+export interface PreviousEntry {
+  location: Location;
+  record: EntryRecord;
+}
+
+/** The current tabbed area of an entry, the entry's record, and its location */
+export interface TabsEntry {
+  location: Location;
+  record: EntryRecord;
+  area: AreaRecord;
+}
+
 /** The most steps a tab keeps */
 export const MAX_TAB_STEPS = 50;
 
@@ -155,6 +168,19 @@ export const matchTab = (config: TabsConfig, pathname: string) => {
 export const findTab = (config: TabsConfig, tabId: string) =>
   config.tabs.find((tab) => tab.id === tabId) ??
   config.tabs.find((tab) => tab.id === config.defaultTab)!;
+
+/** Configs ordered outer first: an area's parent comes before it */
+export const orderConfigs = (configs: TabsConfig[]) => {
+  const byId = new Map(configs.map((config) => [config.id, config]));
+
+  /** How deep an area sits */
+  const depth = (config: TabsConfig): number => {
+    const parent = config.parent && byId.get(config.parent.area);
+    return parent ? depth(parent) + 1 : 0;
+  };
+
+  return [...configs].sort((a, b) => depth(a) - depth(b));
+};
 
 /** Saved steps with the left tab's steps stored and the entered tab's removed */
 export const updateSaved = (

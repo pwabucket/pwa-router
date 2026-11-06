@@ -33,7 +33,7 @@ One folder per feature, each holding its components, hooks, contexts and engine 
 ## The pieces
 | Piece | File | Job |
 | --- | --- | --- |
-| Planners (pure) | `src/engine/core/planChanges.ts`, `src/tabs/core/planTabs.ts` | Current record + requests → the operations to run |
+| Planners (pure) | `src/engine/core/planChanges.ts`, `src/tabs/core/planTabsOp.ts` (plus `adoptAreas`, `settleMemory`, `restoreSteps`, `planBackfill` beside it) | Current record + requests → the operations to run |
 | Intent queue | `src/engine/IntentQueue.ts` | Requests in order: an operation's finishing write, then a tab operation, then all value changes as one transaction |
 | Transactions | `src/engine/useLocationStateTransactions.ts` | Takes intents, plans them, checks guards, sends them one landing at a time |
 | Busy state | `src/engine/EngineWork.ts` | Work sent and not landed, and operations still running |

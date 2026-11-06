@@ -4,7 +4,7 @@ import {
   isDefaultCollapsed,
   popToStep,
   showDefaultTab,
-} from "./core/planTabs";
+} from "./core/restoreSteps";
 import { findFirstRealIndex } from "../engine/core/steps";
 import { readStepPath } from "./core/tabs";
 import type { MoveDecider } from "../engine/moveDeciders";

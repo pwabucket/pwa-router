@@ -1,73 +1,18 @@
-import type { Location } from "react-router";
 import { describe, expect, it } from "vitest";
-import {
-  adoptTabs,
-  isDefaultCollapsed,
-  planBackfill,
-  planTabsOp,
-  popToStep,
-} from "../planTabs";
-import {
-  ROUTER_RECORD,
-  createArea,
-  createRecord,
-  readRecord,
-  type AreaRecord,
-  type StepRecord,
-} from "../../../engine/core/record";
-import { matchTab, type TabsConfig } from "../tabs";
+import { createArea, readRecord } from "../../../engine/core/record";
 import { stepIds } from "../../../engine/core/tests/helpers";
-
-/** The tabbed area of the tests */
-const config: TabsConfig = {
-  id: "main",
-  defaultTab: "home",
-  tabs: [
-    { id: "home", root: "/" },
-    { id: "search", root: "/search" },
-  ],
-};
-
-/** A page step, real at a position or virtual */
-const page = (
-  id: string,
-  position: number | null,
-  pathname = `/${id}`,
-): StepRecord => ({
-  id,
-  kind: "page",
-  position,
-  snapshot: {
-    pathname,
-    search: "",
-    hash: "",
-    values: {},
-    record: { values: {}, areas: [] },
-  },
-});
-
-/** A layer step at a position */
-const layer = (id: string, position: number): StepRecord => ({
-  id,
-  kind: "layer",
-  position,
-});
-
-/** A tab entry: its location, record and area */
-const entry = (pathname: string, area: AreaRecord) => {
-  const record = { ...createRecord(), areas: [createRecord().areas[0], area] };
-  const location = {
-    pathname,
-    search: "",
-    hash: "",
-    key: "k",
-    state: { [ROUTER_RECORD]: record },
-  } as Location;
-  return { location, record, area };
-};
-
-/** An empty memory */
-const memory = { version: 0, saved: {} };
+import { planTabsOp } from "../planTabsOp";
+import {
+  config,
+  entry,
+  layer,
+  layout,
+  layoutEntry,
+  memory,
+  opened,
+  page,
+  restored,
+} from "./helpers";
 
 describe("planTabsOp", () => {
   it("switches with one push, keeping lower pages virtual", () => {
@@ -100,7 +45,6 @@ describe("planTabsOp", () => {
     expect(searchArea.saved.home[0].snapshot?.pathname).toBe("/feed");
     expect(searchArea.savedVersion).toBe(3);
   });
-
   it("leaves the default tab's kept layers below, closing the dropped ones", () => {
     const panel = {
       area: "main",
@@ -150,7 +94,6 @@ describe("planTabsOp", () => {
       "a",
     ]);
   });
-
   it("closes the slot to return to the default tab", () => {
     const area = {
       ...createArea("main", "search", 1, 0),
@@ -166,7 +109,6 @@ describe("planTabsOp", () => {
 
     expect(plan).toEqual({ landing: 3 });
   });
-
   it("pops to the tab's first entry and makes it the root", () => {
     const area = {
       ...createArea("main", "search", 1, 0),
@@ -189,66 +131,7 @@ describe("planTabsOp", () => {
   });
 });
 
-describe("adoptTabs", () => {
-  it("records a pushed page above the previous one, snapshotted", () => {
-    const previous = entry("/feed", {
-      ...createArea("main", "home", 1, 0),
-      steps: [{ id: "feed", kind: "page", position: 1 }],
-    });
-    const area = adoptTabs(
-      config,
-      previous,
-      {
-        pathname: "/post",
-        search: "",
-        hash: "",
-        key: "n",
-        state: null,
-      } as Location,
-      createRecord(),
-      "PUSH",
-      memory,
-      2,
-      1,
-      stepIds(),
-    );
-
-    expect(area.steps.map((step) => [step.id, step.position])).toEqual([
-      ["feed", 1],
-      ["s1", 2],
-    ]);
-    expect(area.steps[0].snapshot?.pathname).toBe("/feed");
-  });
-});
-
-describe("popToStep", () => {
-  it("shows a step in the entry, keeping the steps below", () => {
-    const area = {
-      ...createArea("main", "search", 1, 0),
-      steps: [page("search", null), page("results", null), page("photo", 6)],
-    };
-    const state = popToStep(area, entry("/photo", area).record, "results", 6);
-
-    expect(readRecord(state)!.areas[1].steps).toEqual([
-      page("search", null),
-      { id: "results", kind: "page", position: 6 },
-    ]);
-  });
-});
-
 describe("a restored area's default tab", () => {
-  /** An area restored into the entry at 7, on search, with home saved */
-  const restored = {
-    ...createArea("main", "search", 7, 2, "home"),
-    steps: [page("search", 7)],
-    saved: { home: [page("feed", null), page("post", null)] },
-  };
-
-  it("is collapsed when the area starts at the active tab's entry", () => {
-    expect(isDefaultCollapsed(restored, 7)).toBe(true);
-    expect(isDefaultCollapsed({ ...restored, start: 3 }, 7)).toBe(false);
-  });
-
   it("is shown in the same entry when selected, its pages kept virtual", () => {
     const plan = planTabsOp(
       { kind: "select", area: "main", tab: "home" },
@@ -272,53 +155,6 @@ describe("a restored area's default tab", () => {
 });
 
 describe("tabs without a root", () => {
-  /** Tabs sharing the address of the page they're on */
-  const layout: TabsConfig = {
-    id: "main",
-    defaultTab: "canvas",
-    tabs: [{ id: "canvas" }, { id: "items" }, { id: "settings", root: "/s" }],
-  };
-
-  /** The area opened on /layout?doc=5, on the given tab */
-  const opened = (active: string, steps: StepRecord[]) => ({
-    ...createArea("main", active, 1, 0, "canvas"),
-    address: { pathname: "/layout", search: "?doc=5", hash: "" },
-    steps,
-  });
-
-  /** An entry on /layout?doc=5 */
-  const layoutEntry = (area: AreaRecord) => {
-    const tabEntry = entry("/layout", area);
-    tabEntry.location.search = "?doc=5";
-    return tabEntry;
-  };
-
-  it("never match an address", () => {
-    expect(matchTab(layout, "/layout")).toBe("canvas");
-    expect(matchTab(layout, "/s/deep")).toBe("settings");
-  });
-
-  it("record the address a new area opens on", () => {
-    const area = adoptTabs(
-      layout,
-      null,
-      { ...layoutEntry(opened("canvas", [])).location, state: null },
-      createRecord(),
-      "PUSH",
-      memory,
-      1,
-      0,
-      stepIds(),
-    );
-
-    expect(area.active).toBe("canvas");
-    expect(area.address).toEqual({
-      pathname: "/layout",
-      search: "?doc=5",
-      hash: "",
-    });
-  });
-
   it("start on the area's address when first selected", () => {
     const plan = planTabsOp(
       { kind: "select", area: "main", tab: "items" },
@@ -348,15 +184,5 @@ describe("tabs without a root", () => {
     );
 
     expect(plan).toBeNull();
-  });
-
-  it("put nothing under a first entry when the default has no root", () => {
-    const backfill = planBackfill(
-      layout,
-      layoutEntry(opened("canvas", [page("canvas", 1, "/layout")])),
-      stepIds(),
-    );
-
-    expect(backfill).toBeNull();
   });
 });
