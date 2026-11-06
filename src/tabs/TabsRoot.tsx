@@ -17,6 +17,7 @@ import {
 } from "./core/tabs";
 import { warnInvalidTabs } from "./tabsWarnings";
 
+/** Props of TabsRoot */
 interface TabsRootProps {
   /** The tabbed area's id */
   id: string;

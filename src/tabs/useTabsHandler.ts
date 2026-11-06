@@ -12,7 +12,6 @@ import {
 } from "react-router";
 import { adoptAreas } from "./core/adoptAreas";
 import { settleMemory } from "./core/settleMemory";
-import type { PreviousEntry } from "./core/tabs";
 import {
   type EntryRecord,
   findArea,
@@ -20,13 +19,15 @@ import {
   writeRecord,
 } from "../engine/core/record";
 import { createStepId } from "../engine/core/stepIds";
-import type { TabsConfig, TabsMemory } from "./core/tabs";
+import {
+  EMPTY_TABS_MEMORY,
+  type PreviousEntry,
+  type TabsConfig,
+  type TabsMemory,
+} from "./core/tabs";
 import { readHistoryIndex } from "../utils/history";
 import { getLocationPath } from "../utils/location";
 import type { EngineWork } from "../engine/EngineWork";
-
-/** Memory of an area before any of its entries has settled */
-const EMPTY_MEMORY: TabsMemory = { version: 0, saved: {} };
 
 /** Saved steps of every registered area, by area id */
 type TabsMemories = Record<string, TabsMemory>;
@@ -50,7 +51,7 @@ const settleMemories = (
       ? { ...previous, area: previousArea }
       : null;
 
-    const memory = memories[id] ?? EMPTY_MEMORY;
+    const memory = memories[id] ?? EMPTY_TABS_MEMORY;
     const settled = settleMemory(memory, previousEntry, area);
     if (settled !== memory) next = { ...next, [id]: settled };
   }

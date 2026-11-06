@@ -41,6 +41,9 @@ export interface TabsMemory {
   saved: SavedTabSteps;
 }
 
+/** The memory of an area before any of its entries has settled */
+export const EMPTY_TABS_MEMORY: TabsMemory = { version: 0, saved: {} };
+
 /** The previous settled entry */
 export interface PreviousEntry {
   location: Location;

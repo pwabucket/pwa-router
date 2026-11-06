@@ -4,6 +4,7 @@ import {
   type LocationStateDefaults,
 } from "./LocationStateDefaultsContext";
 
+/** Props of LocationStateDefaultsProvider: the defaults, and the section they cover */
 interface LocationStateDefaultsProviderProps extends LocationStateDefaults {
   children?: React.ReactNode;
 }

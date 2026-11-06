@@ -4,7 +4,8 @@ import {
   positionPushedStep,
   type ValueChange,
 } from "../planChanges";
-import { ROUTER_RECORD, createRecord, readRecord } from "../record";
+import { ROUTER_RECORD } from "../../../constants";
+import { createRecord, readRecord } from "../record";
 import {
   pushedValue,
   rootRecord,

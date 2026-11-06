@@ -8,15 +8,17 @@ import {
   useRef,
 } from "react";
 import { useNavigate } from "react-router";
+import { ROUTER_GUARD } from "../constants";
 import { LeaveGuardsContext } from "./LeaveGuardsContext";
 import { LocationStateTransactionsContext } from "../layers/LocationStateTransactionsContext";
 import { TabsEngineContext } from "../tabs/TabsEngineContext";
 import { TabViewContext } from "../tabs/TabViewContext";
 import { readHistoryIndex } from "../utils/history";
-import { ROUTER_GUARD, questionChange } from "./LeaveGuardRegistry";
+import { questionChange } from "./LeaveGuardRegistry";
 import { getLocationPath } from "../utils/location";
 import { useLocation } from "../router/useLocation";
 
+/** Options of a leave guard */
 interface UseLeaveGuardOptions {
   /** There is unsaved work to protect */
   when: boolean;
@@ -24,6 +26,7 @@ interface UseLeaveGuardOptions {
   key?: string;
 }
 
+/** A leave guard's question and its answers */
 interface LeaveGuardControls {
   /** A move was blocked: show the question */
   isBlocked: boolean;

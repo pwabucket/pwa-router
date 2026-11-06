@@ -1,5 +1,4 @@
-/** The key of the engine's record in every entry's state */
-export const ROUTER_RECORD = "__router";
+import { ROUTER_KEY_PREFIX, ROUTER_RECORD } from "../../constants";
 
 /** The address of a location */
 export interface Address {
@@ -136,7 +135,7 @@ export const readAppValues = (state: unknown) => {
   for (const [key, value] of Object.entries(
     (state as Record<string, unknown> | null | undefined) ?? {},
   )) {
-    if (!key.startsWith("__router")) values[key] = value;
+    if (!key.startsWith(ROUTER_KEY_PREFIX)) values[key] = value;
   }
 
   return values;

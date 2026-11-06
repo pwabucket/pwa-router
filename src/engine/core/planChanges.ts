@@ -81,6 +81,7 @@ export interface WritePlan {
   options: NavigateOptions;
 }
 
+/** What a set of changes does to the history */
 export type ChangesPlan = NonePlan | ClosePlan | WritePlan;
 
 /** The change updates the current entry in place */

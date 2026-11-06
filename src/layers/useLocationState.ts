@@ -6,6 +6,7 @@ import {
   type UseLocationStateOptions,
 } from "./useSetLocationState";
 
+/** A location state value and its setter */
 type UseLocationStateReturn<T> = [T, SetLocationState<T>];
 
 /** A hook for a value stored on the current history entry; clearing it goes back */

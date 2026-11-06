@@ -9,6 +9,7 @@ import {
 } from "../../engine/core/record";
 import { pruneSteps } from "../../engine/core/steps";
 import {
+  EMPTY_TABS_MEMORY,
   matchTab,
   MAX_TAB_STEPS,
   orderConfigs,
@@ -88,7 +89,6 @@ export const adoptAreas = (
   newStepId: () => StepId,
 ): EntryRecord | undefined => {
   const areas: AreaRecord[] = [];
-  const empty: TabsMemory = { version: 0, saved: {} };
 
   /* The live areas, outer first: an area lives while its parent shows its tab */
   const live = orderConfigs(configs).filter((config) => {
@@ -126,7 +126,7 @@ export const adoptAreas = (
           location,
           record,
           navigationType,
-          memories[config.id] ?? empty,
+          memories[config.id] ?? EMPTY_TABS_MEMORY,
           historyLength,
           historyIndex,
           newStepId,
@@ -142,7 +142,7 @@ export const adoptAreas = (
           location,
           record,
           navigationType,
-          memories[config.id] ?? empty,
+          memories[config.id] ?? EMPTY_TABS_MEMORY,
           historyLength,
           historyIndex,
           newStepId,

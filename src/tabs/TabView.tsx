@@ -10,6 +10,7 @@ import type { StepRecord } from "../engine/core/record";
 import { findTab, readStepPath, rootPageStep } from "./core/tabs";
 import { warnHiddenTabChange } from "./tabsWarnings";
 
+/** Props of TabView; other props go to its div */
 interface TabViewProps extends React.HTMLAttributes<HTMLDivElement> {
   /** The tab this view shows */
   id: string;

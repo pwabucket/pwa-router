@@ -4,6 +4,7 @@ import { LocationStateTransactionsContext } from "./LocationStateTransactionsCon
 import { warnLargeStateValue } from "./stateSizeWarning";
 import type { ValueChangeOptions } from "../engine/core/planChanges";
 
+/** Options of a location state value */
 interface UseLocationStateOptions {
   /** Keep the value after a page reload (default: true, or the section's default) */
   persist?: boolean;

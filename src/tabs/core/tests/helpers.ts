@@ -1,6 +1,6 @@
 import type { Location } from "react-router";
+import { ROUTER_RECORD } from "../../../constants";
 import {
-  ROUTER_RECORD,
   createArea,
   createRecord,
   type AreaRecord,

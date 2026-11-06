@@ -1,11 +1,9 @@
+import { isProduction } from "../utils/environment";
 import type { TabsConfig } from "./core/tabs";
-
-/* Set by the app's bundler; read at runtime so the library build keeps it */
-declare const process: { env: { NODE_ENV?: string } };
 
 /** Warns, in development, about duplicate tab ids or an unknown default tab */
 export const warnInvalidTabs = ({ id, tabs, defaultTab }: TabsConfig) => {
-  if (process.env.NODE_ENV === "production") return;
+  if (isProduction()) return;
 
   /* Duplicate ids */
   const ids = tabs.map((tab) => tab.id);
@@ -26,7 +24,7 @@ export const warnInvalidTabs = ({ id, tabs, defaultTab }: TabsConfig) => {
 
 /** Warns, in development, when a hidden tab tries to change location state */
 export const warnHiddenTabChange = (key: string) => {
-  if (process.env.NODE_ENV === "production") return;
+  if (isProduction()) return;
 
   console.warn(
     `[pwa-router] A hidden tab tried to change "${key}"; it can't until it is shown.`,

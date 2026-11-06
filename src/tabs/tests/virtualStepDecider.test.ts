@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  ROUTER_RECORD,
-  createArea,
-  createRecord,
-} from "../../engine/core/record";
+import { ROUTER_RECORD } from "../../constants";
+import { createArea, createRecord } from "../../engine/core/record";
 import { at, back } from "../../engine/tests/moves";
 import { virtualStepDecider } from "../virtualStepDecider";
 

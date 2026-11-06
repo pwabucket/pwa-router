@@ -26,6 +26,7 @@ import { useNavigateIndexHandler } from "../engine/handlers/useNavigateIndexHand
 import { usePendingNavigationHandler } from "../engine/handlers/usePendingNavigationHandler";
 import { useTabsHandler } from "../tabs/useTabsHandler";
 
+/** Props of PWARoutingProvider */
 interface PWARoutingProviderProps {
   children?: React.ReactNode;
   /** Put this home path under an inner page the app is first opened on, so back goes home first */

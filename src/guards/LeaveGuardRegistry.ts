@@ -5,6 +5,7 @@ import type {
   PlanEntry,
   ValueChange,
 } from "../engine/core/planChanges";
+import { ROUTER_GUARD } from "../constants";
 import { readValuePosition } from "../engine/core/queries";
 import {
   readWriteLocation,
@@ -12,7 +13,6 @@ import {
   type TabsPlan,
 } from "../tabs/core/planTabsOp";
 import { readActiveTab } from "../tabs/core/tabs";
-
 
 /** A registered leave guard */
 interface LeaveGuard {
@@ -34,9 +34,6 @@ type BlockedAttempt =
   | { kind: "navigation"; guardId: string; location: Location }
   | { kind: "changes"; guardId: string; changes: ValueChange[] }
   | { kind: "tabs"; guardId: string; op: TabsOp };
-
-/** The location state key holding the guard whose question is open */
-export const ROUTER_GUARD = "__router_guard";
 
 /** The guard's scope holds the location: its tab, then its layer or page */
 const isInside = (guard: LeaveGuard, location: Partial<Location>) => {

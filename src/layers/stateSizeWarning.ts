@@ -1,5 +1,4 @@
-/* Set by the app's bundler; read at runtime so the library build keeps it */
-declare const process: { env: { NODE_ENV?: string } };
+import { isProduction } from "../utils/environment";
 
 /** Serialized size above which a value is too large for history state */
 const MAX_STATE_VALUE_LENGTH = 4096;
@@ -9,7 +8,7 @@ const warnedKeys = new Set<string>();
 
 /** Warns once per key, in development, when a value is too large for history state */
 export const warnLargeStateValue = (key: string, value: unknown) => {
-  if (process.env.NODE_ENV === "production" || warnedKeys.has(key)) return;
+  if (isProduction() || warnedKeys.has(key)) return;
 
   /* Measure the serialized value; unserializable values are left to the browser */
   let length = 0;

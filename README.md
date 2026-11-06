@@ -593,6 +593,23 @@ People open PWAs directly on inner pages, from shared links or home-screen short
 
 Inside a [tabbed area](#tabbed-apps) this happens on its own, with the tab roots underneath. A default tab without a `root` puts nothing underneath. Elsewhere, with `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
 
+## State markers
+
+For moves the hooks don't cover, a navigation's state can carry a marker that the router acts on. Spread one from `routerState` into `state`:
+
+```tsx
+import { NavLink, routerState } from "@pwabucket/pwa-router";
+
+<NavLink to="/settings" replace state={routerState.from(-1)}>
+  Settings
+</NavLink>;
+```
+
+- `routerState.from(delta)` goes back by `delta` entries first, then applies the navigation from there. A link inside a sidebar layer uses `from(-1)` with `replace`: the sidebar's entry closes and the page takes its place, so back never reopens the sidebar.
+- `routerState.navigate(position)` lands on the entry before `position`, where an entry's position is `window.history.length` right after it was pushed.
+- `routerState.destroy(position)` first pushes an entry, which drops every forward entry (such as those an iframe added), then lands like `navigate`.
+- `fromPosition`, `navigateIndex` and `destroyIndex` are the same helpers on their own, and `ROUTER_FROM_POSITION`, `ROUTER_NAVIGATE_INDEX` and `ROUTER_DESTROY_INDEX` are their keys.
+
 ## Testing
 
 `@pwabucket/pwa-router/testing` holds [Playwright](https://playwright.dev/) helpers for testing back-gesture flows in a real browser. Render [`RouterStatusProbe`](#routerstatusprobe) in the app under test, so the helpers know when the engine has settled.

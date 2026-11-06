@@ -4,6 +4,7 @@ import {
   type PWARoutingProviderProps,
 } from "./PWARoutingProvider";
 
+/** Props of PWARouter: BrowserRouter's, plus the engine's */
 type PWARouterProps = BrowserRouterProps &
   Pick<PWARoutingProviderProps, "deepLinkHome">;
 

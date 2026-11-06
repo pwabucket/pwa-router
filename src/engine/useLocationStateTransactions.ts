@@ -12,7 +12,11 @@ import {
   type TabsPlan,
 } from "../tabs/core/planTabsOp";
 import { type EntryRecord, findArea, readEntry } from "./core/record";
-import type { TabsConfig, TabsMemory } from "../tabs/core/tabs";
+import {
+  EMPTY_TABS_MEMORY,
+  type TabsConfig,
+  type TabsMemory,
+} from "../tabs/core/tabs";
 import type { EngineWork } from "./EngineWork";
 import {
   writeChanges,
@@ -39,9 +43,6 @@ interface TabsBinding {
   memories: Record<string, TabsMemory>;
   reset: (id: string) => void;
 }
-
-/** Memory of an area before any of its entries has settled */
-const EMPTY_MEMORY: TabsMemory = { version: 0, saved: {} };
 
 /** Sets the location kept on show while the engine crosses other entries */
 type ShowLocation = (
@@ -126,7 +127,7 @@ const useLocationStateTransactions = (
       /* The operation's area: its config, its record and its memory */
       const config = configs.find((candidate) => candidate.id === op.area);
       const area = findArea(record, op.area);
-      const memory = memories[op.area] ?? EMPTY_MEMORY;
+      const memory = memories[op.area] ?? EMPTY_TABS_MEMORY;
 
       /* Nothing to do: the operation is over */
       const entry = area && { location, record, area };

@@ -6,6 +6,7 @@ import type { SetLocationStateOptions } from "./useSetLocationState";
 /** Selects a tab */
 type SelectLocationTab<T> = (tab: T, options?: SetLocationStateOptions) => void;
 
+/** The tab on show and its selector */
 type UseLocationTabReturn<T> = [T, SelectLocationTab<T>];
 
 /** A hook for tabs or panes with a default: other tabs share one entry above it, and back returns to the default */

@@ -12,6 +12,7 @@ type SetLocationToggle = (
   options?: SetLocationStateOptions,
 ) => void;
 
+/** A toggle's status and its setter */
 type UseLocationToggleReturn = [boolean, SetLocationToggle];
 
 /** A hook for setting a location toggle without reading it */
