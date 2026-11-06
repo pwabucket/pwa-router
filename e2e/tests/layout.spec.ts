@@ -169,4 +169,15 @@ test.describe("tabs at one address", () => {
     expect((await readHistory(page)).path).toBe("/layout");
     await expectShown(page, "Unsaved settings");
   });
+
+  test("a screen knows whether its tab is active", async ({ page }) => {
+    await openLayout(page);
+    const canvas = page.locator("div[data-tab=canvas]");
+    await expect(canvas).toContainText("Canvas tab active");
+    await expect(page.getByText("Bar outside every view")).toBeVisible();
+
+    /* Another tab selected: the canvas screen stays mounted, inactive */
+    await press(page, "items tab");
+    await expect(canvas).toContainText("Canvas tab inactive");
+  });
 });

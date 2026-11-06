@@ -4,6 +4,7 @@ import { LocationStateTransactionsContext } from "../layers/LocationStateTransac
 import { PWARoutingContext } from "../router/PWARoutingContext";
 import { TabsContext } from "./TabsContext";
 import { TabViewContext } from "./TabViewContext";
+import { TabViewStatusContext } from "./TabViewStatusContext";
 import { usePWARouting } from "../router/usePWARouting";
 import type { QueueLocationStateChange } from "../engine/useLocationStateTransactions";
 import type { StepRecord } from "../engine/core/record";
@@ -80,15 +81,20 @@ const TabView = ({ id, children }: TabViewProps) => {
     [tabs.config.id, id],
   );
 
+  /** The view's tab and whether it is active, for its screens */
+  const status = useMemo(() => ({ tab: id, isActive }), [id, isActive]);
+
   return (
     <TabViewContext.Provider value={place}>
-      <PWARoutingContext.Provider value={viewRouting}>
-        <LocationStateTransactionsContext.Provider
-          value={canAct ? queueChange : ignoreChange}
-        >
-          {children}
-        </LocationStateTransactionsContext.Provider>
-      </PWARoutingContext.Provider>
+      <TabViewStatusContext.Provider value={status}>
+        <PWARoutingContext.Provider value={viewRouting}>
+          <LocationStateTransactionsContext.Provider
+            value={canAct ? queueChange : ignoreChange}
+          >
+            {children}
+          </LocationStateTransactionsContext.Provider>
+        </PWARoutingContext.Provider>
+      </TabViewStatusContext.Provider>
     </TabViewContext.Provider>
   );
 };

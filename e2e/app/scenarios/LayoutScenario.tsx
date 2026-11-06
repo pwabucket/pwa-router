@@ -6,6 +6,7 @@ import {
   useLocationState,
   useLocationToggle,
   useTabs,
+  useTabView,
 } from "../../../src";
 import { TabPane } from "../components/TabPane";
 
@@ -15,11 +16,13 @@ const TABS = [{ id: "canvas" }, { id: "items" }, { id: "settings" }];
 /** The tab bar, outside every view */
 const TabBar = () => {
   const { active, select } = useTabs();
+  const view = useTabView();
 
   return (
     <nav>
       {/* Status */}
       <p>Active {active}</p>
+      <p>{view ? "Bar inside a view" : "Bar outside every view"}</p>
 
       {/* Tabs */}
       {TABS.map(({ id }) => (
@@ -35,11 +38,13 @@ const TabBar = () => {
 const Canvas = () => {
   const tools = useLocationPopup("tools");
   const [isLayersOpen, setLayersOpen] = useLocationToggle("layers");
+  const view = useTabView();
 
   return (
     <>
       {/* Status */}
       <p>Canvas</p>
+      <p>{view?.isActive ? "Canvas tab active" : "Canvas tab inactive"}</p>
       <p>{tools.open ? "Tools open" : "Tools closed"}</p>
       <p>{isLayersOpen ? "Layers open" : "Layers closed"}</p>
 

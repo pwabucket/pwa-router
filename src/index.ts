@@ -77,6 +77,8 @@ export { TabView } from "./tabs/TabView";
 export type { TabViewProps } from "./tabs/TabView";
 export { useTabs } from "./tabs/useTabs";
 export type { TabsControls } from "./tabs/useTabs";
+export { useTabView } from "./tabs/useTabView";
+export type { TabViewStatus } from "./tabs/TabViewStatusContext";
 export type { TabDefinition } from "./tabs/core/tabs";
 
 /* React Router pieces that need no engine awareness */

@@ -196,6 +196,7 @@ const TABS = [{ id: "canvas" }, { id: "items" }, { id: "settings" }];
 ### Views and layout
 
 - **`TabView` gives a tab's screens their location; the layout is yours.** It renders no element, so show, hide, animate or place the panes however the app needs.
+- **Screens can read their tab's status** with [`useTabView`](#usetabview).
 - **Only the active tab's screens are live.** Every other view reads its tab's last step: it can't navigate or change location state, and its location doesn't change while other tabs navigate.
 - **Panes kept mounted while hidden** keep their screens' state and unsaved work across switches, and a switch never asks a [leave guard](#useleaveguard). Leaving the tab area (`exitTabs`) does ask. A heavy pane can drop its content while its tab isn't active, to save memory on low-end phones; its screens then lose their local state.
 - **A wide layout showing every pane at once** renders them without `TabsRoot`: only one tab can own the current entry. With no `TabsRoot` mounted, the router has no tab behaviour, and back is a plain back.
@@ -215,6 +216,24 @@ const { active, select, popToRoot } = useTabs();
 - `select(tab)` switches to a tab. On the active tab, it does nothing.
 - `popToRoot()` pops the active tab to its first page, closing everything above it. Unlike a switch, it asks a [leave guard](#useleaveguard) it would leave.
 - `select` and `popToRoot` are stable.
+
+---
+
+### `useTabView`
+
+The tab of the nearest [`TabView`](#tabsroot--tabview), and whether it is active, for screens that act differently while their tab isn't selected: pausing media, skipping work, setting `aria` attributes.
+
+```tsx
+const view = useTabView();
+
+useEffect(() => {
+  if (!view?.isActive) video.pause();
+}, [view?.isActive]);
+```
+
+**Returns:** `{ tab: string; isActive: boolean } | null`
+- `isActive` is `true` while the view's tab is selected, including one being switched to.
+- `null` outside every `TabView`.
 
 ---
 
@@ -685,7 +704,7 @@ The following types are exported for convenience:
 - **`SelectLocationTab<T>`**, **`UseLocationTabReturn<T>`**
 - **`LocationPopupProps`**, **`LocationStateDefaultsProviderProps`**
 - **`UseLeaveGuardOptions`**, **`LeaveGuardControls`**
-- **`TabsRootProps`**, **`TabViewProps`**, **`TabDefinition`**, **`TabsControls`**
+- **`TabsRootProps`**, **`TabViewProps`**, **`TabDefinition`**, **`TabsControls`**, **`TabViewStatus`**
 - **`PWANavigateFunction`**, **`PWANavigateOptions`**, **`PWALinkProps`**, **`PWANavLinkProps`**, **`PWANavigateProps`**
 
 ## License

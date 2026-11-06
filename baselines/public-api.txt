@@ -46,6 +46,7 @@
 . TabDefinition
 . TabView
 . TabViewProps
+. TabViewStatus
 . TabsControls
 . TabsRoot
 . TabsRootProps
@@ -84,6 +85,7 @@
 . useSearchParams
 . useSetLocationState
 . useSetLocationToggle
+. useTabView
 . useTabs
 ./testing HistorySnapshot
 ./testing goBack
