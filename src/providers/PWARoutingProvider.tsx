@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { useLocation, type Location } from "react-router";
 
 import {
@@ -18,7 +18,9 @@ import { useDeepLinkHomeHandler } from "./engine/useDeepLinkHomeHandler";
 import { useDestroyIndexHandler } from "./engine/useDestroyIndexHandler";
 import { useEphemeralStateHandler } from "./engine/useEphemeralStateHandler";
 import { useFromPositionHandler } from "./engine/useFromPositionHandler";
-import { useUndoMoveHandler } from "./engine/useUndoMoveHandler";
+import { createGuardDecider } from "./engine/deciders/guardDecider";
+import { virtualPageDecider } from "./engine/deciders/virtualPageDecider";
+import { useMoveWatcher } from "./engine/useMoveWatcher";
 import { useLocationStateTransactions } from "./engine/useLocationStateTransactions";
 import { useNavigateIndexHandler } from "./engine/useNavigateIndexHandler";
 import { usePendingNavigationHandler } from "./engine/usePendingNavigationHandler";
@@ -75,14 +77,25 @@ const PWARoutingProvider = ({
     location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
     location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
 
-  /* Moves leaving a guard, or backing out of a tab's virtual page, are undone */
-  const { frozenLocation, isReverting } = useUndoMoveHandler(
+  /* The deciders of user moves, in order: guards ask first, then tabs show virtual pages */
+  const deciders = useMemo(
+    () => [createGuardDecider(guards), virtualPageDecider],
+    [guards],
+  );
+
+  /* User moves a decider asks to undo are undone, with the screen kept on show */
+  const { settledLocation, frozenLocation, isReverting } = useMoveWatcher(
     location,
-    guards,
+    deciders,
     work,
     hasCorrection,
     tryLockAfterEphemeralCleanup,
   );
+
+  /* Wake guards whose move has landed outside their scope */
+  useLayoutEffect(() => {
+    guards.settle(settledLocation);
+  }, [guards, settledLocation]);
 
   /* Every entry of a tabbed area carries its tabs data */
   const tabsHandler = useTabsHandler(
