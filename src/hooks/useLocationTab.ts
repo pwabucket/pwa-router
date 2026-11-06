@@ -22,9 +22,12 @@ const useLocationTab = <T>(
       if (Object.is(nextTab, defaultTab)) {
         setTab(undefined, selectOptions);
       } else {
+        /* From another tab: replace in place on the tab's entry, closing what's above */
+        const isOnOtherTab = !Object.is(tab, defaultTab);
         setTab(nextTab, {
           ...selectOptions,
-          replace: !Object.is(tab, defaultTab),
+          replace: isOnOtherTab,
+          onOwnEntry: isOnOtherTab,
         });
       }
     },

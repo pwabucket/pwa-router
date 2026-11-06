@@ -20,6 +20,8 @@ import {
 export interface ValueChangeOptions extends NavigateOptions {
   /** When clearing, go back before the value's first push instead of its latest */
   toStart?: boolean;
+  /** When updating in place, write on the entry the value was pushed on, closing what's above */
+  onOwnEntry?: boolean;
 }
 
 /** A queued change to one location state value */
@@ -126,8 +128,13 @@ const applyChanges = (
 
   for (const change of changes) {
     /* Navigation options, the latest change winning */
-    const { state: statePatch, replace: _, toStart: __, ...rest } =
-      change.options ?? {};
+    const {
+      state: statePatch,
+      replace: _,
+      toStart: __,
+      onOwnEntry: ___,
+      ...rest
+    } = change.options ?? {};
     options = { ...options, ...rest };
 
     /* The value with its state patch (public markers included, the record not) */
@@ -270,6 +277,16 @@ const planWrite = (
   };
 };
 
+/** The landing that closes everything above a value's own entry, if anything is above */
+const findOwnEntryLanding = (record: EntryRecord, key: string) => {
+  const value = record.values[key];
+  const area = value && record.areas.find((other) => other.id === value.area);
+  if (!area) return undefined;
+
+  const above = area.steps[findStepIndex(area, value.latest) + 1];
+  return above?.position ?? undefined;
+};
+
 /** Plans the single navigation for every change queued in one tick */
 export const planChanges = (
   entry: PlanEntry,
@@ -282,6 +299,26 @@ export const planChanges = (
   );
 
   if (!changes.length) return { kind: "none" };
+
+  /* An in-place write on the value's own entry closes what's above it first */
+  const ownEntryChange = changes.find(
+    (change) => change.options?.onOwnEntry && isInPlace(change),
+  );
+  const ownEntryLanding =
+    ownEntryChange && findOwnEntryLanding(entry.record, ownEntryChange.key);
+
+  if (ownEntryChange && ownEntryLanding !== undefined) {
+    return {
+      kind: "close",
+      keys: [],
+      target: { kind: "land", before: ownEntryLanding },
+      followUps: changes.map((change) =>
+        change === ownEntryChange
+          ? { ...change, options: { ...change.options, onOwnEntry: false } }
+          : change,
+      ),
+    };
+  }
 
   /* Cleared pushed values close first */
   const closes = changes.filter(

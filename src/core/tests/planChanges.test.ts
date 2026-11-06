@@ -172,6 +172,29 @@ describe("planChanges", () => {
     expect(pushed.areas[0].steps).toEqual([step("m", 4)]);
   });
 
+  it("writes on the value's own entry, closing what's above it first", () => {
+    const record = rootRecord([step("t", 3), step("d", 4)], {
+      tab: pushedValue("t"),
+      dialog: pushedValue("d"),
+    });
+    const select = change("tab", "settings", {
+      replace: true,
+      options: { onOwnEntry: true },
+    });
+    const plan = planChanges(
+      entry({ tab: "details", dialog: true }, record),
+      [select],
+      stepIds(),
+    );
+
+    /* Land on the tab's entry, then replace the tab there */
+    expect(plan).toMatchObject({
+      kind: "close",
+      target: { kind: "land", before: 4 },
+      followUps: [{ key: "tab", options: { onOwnEntry: false } }],
+    });
+  });
+
   it("keeps public markers passed in options.state", () => {
     const plan = planChanges(
       entry({}),

@@ -212,6 +212,7 @@ setStep(undefined, { toStart: true });
 - Pass `replace: true` to update the current entry for this call only.
 - Pass `state` to write other values in the same step.
 - Pass `toStart: true` when clearing to go back before the value's **first** push, instead of its latest. A value pushed several times (steps 1 → 2 → 3) then closes entirely.
+- Pass `replace: true, onOwnEntry: true` to update a pushed value on the entry it was pushed on, closing every layer opened above it first, in one step. [`useLocationTab`](#uselocationtab) uses it to switch between tabs.
 
 The setter is stable for the provider's lifetime, so it can be passed to memoized components.
 

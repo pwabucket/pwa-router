@@ -21,6 +21,26 @@ test.describe("tabs", () => {
     await expect(page.getByText("Tab overview")).toBeVisible();
   });
 
+  test("switching between other tabs closes what is on top", async ({
+    page,
+  }) => {
+    /* Details, then a dialog, then settings from under it */
+    const start = await visit(page, "/tabs");
+    await press(page, "Show details");
+    await press(page, "Open dialog");
+    const settings = await press(page, "Show settings");
+
+    /* The dialog closed, and settings took the tab's one entry */
+    expect(settings.index).toBe(start.index! + 1);
+    await expect(page.getByText("Tab settings")).toBeVisible();
+    await expect(page.getByText("Dialog closed")).toBeVisible();
+
+    /* Back returns to the default tab */
+    const back = await goBack(page);
+    expect(back.index).toBe(start.index);
+    await expect(page.getByText("Tab overview")).toBeVisible();
+  });
+
   test("choosing the default closes what is on top", async ({ page }) => {
     /* Details, then a dialog, then the overview from under it */
     const start = await visit(page, "/tabs");
