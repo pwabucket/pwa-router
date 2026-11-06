@@ -11,6 +11,8 @@ import { useNavigate } from "react-router";
 import { ROUTER_GUARD } from "../constants";
 import { LeaveGuardsContext } from "../contexts/LeaveGuardsContext";
 import { LocationStateTransactionsContext } from "../contexts/LocationStateTransactionsContext";
+import { TabsEngineContext } from "../contexts/TabsEngineContext";
+import { TabViewContext } from "../contexts/TabViewContext";
 import { readHistoryIndex } from "../utils/history";
 import { questionChange } from "../utils/leaveGuards";
 import { getLocationPath } from "../utils/location";
@@ -40,6 +42,8 @@ const useLeaveGuard = ({
   const id = useId();
   const guards = useContext(LeaveGuardsContext)!;
   const queueChange = useContext(LocationStateTransactionsContext)!;
+  const tabsEngine = useContext(TabsEngineContext);
+  const tab = useContext(TabViewContext);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,15 +52,15 @@ const useLeaveGuard = ({
   const isBlocked = location.state?.[ROUTER_GUARD] === id;
 
   /* Keeps the actions stable across navigations */
-  const navigateRef = useRef(navigate);
+  const latestRef = useRef({ navigate, tabsEngine });
 
   // oxlint-disable-next-line react/refs
-  navigateRef.current = navigate;
+  latestRef.current = { navigate, tabsEngine };
 
   /* Register the guard, and remove it on unmount */
   useLayoutEffect(() => {
-    guards.set(id, { key, pathname, when });
-  }, [guards, id, key, pathname, when]);
+    guards.set(id, { key, pathname, when, tab });
+  }, [guards, id, key, pathname, when, tab]);
 
   useLayoutEffect(() => () => guards.delete(id), [guards, id]);
 
@@ -82,7 +86,7 @@ const useLeaveGuard = ({
   /** Closes the question and finishes the blocked move */
   const leave = useCallback(() => {
     const attempt = guards.takeAttempt();
-    const navigate = navigateRef.current;
+    const { navigate, tabsEngine } = latestRef.current;
 
     /* Nothing blocked by this guard: just close the question */
     if (attempt?.guardId !== id) {
@@ -111,6 +115,12 @@ const useLeaveGuard = ({
       case "changes":
         queueChange(questionChange());
         for (const change of attempt.changes) queueChange(change);
+        break;
+
+      /* A tab operation: replay it; it closes the question with everything else */
+      case "tabs":
+        queueChange(questionChange());
+        tabsEngine?.queueTabsOp(attempt.op);
         break;
     }
   }, [guards, id, queueChange]);

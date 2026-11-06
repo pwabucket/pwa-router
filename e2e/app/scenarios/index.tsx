@@ -11,6 +11,7 @@ import { PopupScenario } from "./PopupScenario";
 import { RenderCountScenario } from "./RenderCountScenario";
 import { StepsScenario } from "./StepsScenario";
 import { SwapScenario } from "./SwapScenario";
+import { TabbedScenario } from "./TabbedScenario";
 import { TabsScenario } from "./TabsScenario";
 import { ToggleScenario } from "./ToggleScenario";
 
@@ -30,5 +31,6 @@ export const scenarios = [
   { path: "/guard-page", element: <GuardPageScenario /> },
   { path: "/guard-layer", element: <GuardLayerScenario /> },
   { path: "/tabs", element: <TabsScenario /> },
+  { path: "/tabbed/*", element: <TabbedScenario /> },
   { path: "*", element: <PlainScenario /> },
 ];

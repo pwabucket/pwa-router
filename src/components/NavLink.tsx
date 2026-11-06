@@ -5,27 +5,33 @@ import {
   type NavLinkProps,
 } from "react-router";
 import { usePWARouting } from "../hooks/usePWARouting";
-import { useLinkProps } from "./useLinkProps";
+import { useLinkProps, type PWALinkOwnProps } from "./useLinkProps";
+
+/** Props of this package's NavLink */
+type PWANavLinkProps = NavLinkProps & PWALinkOwnProps;
 
 /** Engine-aware NavLink; active state follows the resolved location */
-const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>((props, ref) => {
-  const locationContext = useContext(LocationContext);
-  const { resolvedLocation } = usePWARouting();
-  const linkProps = useLinkProps(props);
+const NavLink = forwardRef<HTMLAnchorElement, PWANavLinkProps>(
+  ({ exitTabs, ...props }, ref) => {
+    const locationContext = useContext(LocationContext);
+    const { resolvedLocation } = usePWARouting();
+    const linkProps = useLinkProps({ ...props, exitTabs });
 
-  /* RouterNavLink matches against the location from this context */
-  const resolvedLocationContext = useMemo(
-    () => ({ ...locationContext, location: resolvedLocation }),
-    [locationContext, resolvedLocation],
-  );
+    /* RouterNavLink matches against the location from this context */
+    const resolvedLocationContext = useMemo(
+      () => ({ ...locationContext, location: resolvedLocation }),
+      [locationContext, resolvedLocation],
+    );
 
-  return (
-    <LocationContext.Provider value={resolvedLocationContext}>
-      <RouterNavLink ref={ref} {...props} {...linkProps} />
-    </LocationContext.Provider>
-  );
-});
+    return (
+      <LocationContext.Provider value={resolvedLocationContext}>
+        <RouterNavLink ref={ref} {...props} {...linkProps} />
+      </LocationContext.Provider>
+    );
+  },
+);
 
 NavLink.displayName = "NavLink";
 
 export { NavLink };
+export type { PWANavLinkProps };

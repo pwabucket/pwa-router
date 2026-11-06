@@ -9,17 +9,20 @@ import {
 import { LeaveGuardsContext } from "../contexts/LeaveGuardsContext";
 import { LocationStateTransactionsContext } from "../contexts/LocationStateTransactionsContext";
 import { PWARoutingContext } from "../contexts/PWARoutingContext";
+import { TabsEngineContext } from "../contexts/TabsEngineContext";
 import { LeaveGuardRegistry } from "../utils/leaveGuards";
 import { applyOverlay } from "../utils/overlay";
+import { TabsSession } from "../utils/tabs";
 import { useCorrectionLock } from "./engine/useCorrectionLock";
 import { useDeepLinkHomeHandler } from "./engine/useDeepLinkHomeHandler";
 import { useDestroyIndexHandler } from "./engine/useDestroyIndexHandler";
 import { useEphemeralStateHandler } from "./engine/useEphemeralStateHandler";
 import { useFromPositionHandler } from "./engine/useFromPositionHandler";
-import { useLeaveGuardHandler } from "./engine/useLeaveGuardHandler";
+import { useUndoMoveHandler } from "./engine/useUndoMoveHandler";
 import { useLocationStateTransactions } from "./engine/useLocationStateTransactions";
 import { useNavigateIndexHandler } from "./engine/useNavigateIndexHandler";
 import { usePendingNavigationHandler } from "./engine/usePendingNavigationHandler";
+import { useTabsHandler } from "./engine/useTabsHandler";
 
 interface PWARoutingProviderProps {
   children?: React.ReactNode;
@@ -35,6 +38,7 @@ const PWARoutingProvider = ({
   const location = useLocation();
   const tryLock = useCorrectionLock(location.key);
   const [guards] = useState(() => new LeaveGuardRegistry());
+  const [tabsSession] = useState(() => new TabsSession());
 
   /* Handlers run in call order, which is their priority */
   const { sanitizedLocation, hasStaleEphemeralState } =
@@ -66,28 +70,60 @@ const PWARoutingProvider = ({
     location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
     location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
 
-  /* Moves leaving a guarded scope are undone */
-  const { frozenLocation, isReverting } = useLeaveGuardHandler(
+  /* Moves leaving a guard, or backing out of a tab's virtual page, are undone */
+  const { frozenLocation, isReverting } = useUndoMoveHandler(
     location,
     guards,
     hasCorrection,
     tryLockAfterEphemeralCleanup,
   );
-  const isCorrecting = hasCorrection || isReverting;
 
-  /* Home goes under an inner page the app was first opened on */
-  useDeepLinkHomeHandler(deepLinkHome, location, isCorrecting);
+  /* Every entry of a tabbed area carries its tabs data */
+  const tabsHandler = useTabsHandler(
+    location,
+    tabsSession,
+    hasCorrection || isReverting,
+    tryLockAfterEphemeralCleanup,
+  );
+  const isCorrecting = hasCorrection || isReverting || tabsHandler.isCorrecting;
 
-  /* Location state changes run as transactions over the history */
-  const { overlay, queueChange } = useLocationStateTransactions(
+  /* Location state changes and tab operations run as transactions over the history */
+  const {
+    overlay,
+    pendingTab,
+    tabsFrozenLocation,
+    queueChange,
+    queueTabsOp,
+    holdUntilLanding,
+  } = useLocationStateTransactions(
+      location,
+      isCorrecting,
+      guards,
+      tabsHandler.engine,
+      tabsSession,
+    );
+
+  /* Home (or a tab's roots) go under an inner page the app was first opened on */
+  useDeepLinkHomeHandler(
+    deepLinkHome,
     location,
     isCorrecting,
-    guards,
+    tabsHandler.engine,
+    holdUntilLanding,
+  );
+
+  /* The tabs engine for TabsRoot */
+  const tabsEngine = useMemo(
+    () => ({ ...tabsHandler.engine, pendingTab, queueTabsOp }),
+    [tabsHandler.engine, pendingTab, queueTabsOp],
   );
 
   /* The location the engine is settling on */
   const settlingLocation =
-    frozenLocation ?? pendingNavigation?.location ?? sanitizedLocation;
+    frozenLocation ??
+    tabsFrozenLocation ??
+    pendingNavigation?.location ??
+    sanitizedLocation;
 
   /** Pass to <Routes>: the settling location with the values on their way */
   const resolvedLocation = useMemo(
@@ -96,7 +132,7 @@ const PWARoutingProvider = ({
   );
 
   const value = useMemo(
-    () => ({ resolvedLocation, isCorrecting }),
+    () => ({ resolvedLocation, isCorrecting, isInactive: false }),
     [resolvedLocation, isCorrecting],
   );
 
@@ -104,7 +140,9 @@ const PWARoutingProvider = ({
     <PWARoutingContext.Provider value={value}>
       <LeaveGuardsContext.Provider value={guards}>
         <LocationStateTransactionsContext.Provider value={queueChange}>
-          {children}
+          <TabsEngineContext.Provider value={tabsEngine}>
+            {children}
+          </TabsEngineContext.Provider>
         </LocationStateTransactionsContext.Provider>
       </LeaveGuardsContext.Provider>
     </PWARoutingContext.Provider>

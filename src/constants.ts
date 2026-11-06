@@ -9,6 +9,8 @@ export const ROUTER_DESTROY_INDEX = "__router_destroy_index";
 export const ROUTER_NAVIGATE_INDEX = "__router_navigate_index";
 /** The leave guard whose question is open */
 export const ROUTER_GUARD = "__router_guard";
+/** The tabbed area data of an entry, written by the engine */
+export const ROUTER_TABS = "__router_tabs";
 /** Where each value was pushed, stamped by the engine */
 export const ROUTER_LAYERS = "__router_layers";
 /** Keys set with persist: false, discarded after a reload */

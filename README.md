@@ -84,7 +84,100 @@ A layer is open as long as its value is in the history, whether or not anything 
 
 Keep each layer's owner outside lists whose rows mount and unmount: one owner per dialog, opened from the rows with [`useSetLocationToggle`](#usesetlocationtoggle), which never re-renders on navigation.
 
+## Tabbed apps
+
+For apps with a tab bar (home, search, profile…), where each tab remembers where you were.
+
+```tsx
+import { TabsRoot, TabView, useTabs } from "@pwabucket/pwa-router";
+
+/** The app's tabs */
+enum TabId {
+  Home = "home",
+  Search = "search",
+  Profile = "profile",
+}
+
+/** Every tab with the path of its first page; keep the list constant */
+const TABS = [
+  { id: TabId.Home, root: "/" },
+  { id: TabId.Search, root: "/search" },
+  { id: TabId.Profile, root: "/profile" },
+];
+
+<TabsRoot id="main" tabs={TABS} defaultTab={TabId.Home}>
+  <TabBar />
+  {TABS.map(({ id }) => (
+    <TabView key={id} id={id}>
+      <AppRoutes />
+    </TabView>
+  ))}
+</TabsRoot>;
+
+/** The tab bar, built with your own UI library */
+const TabBar = () => {
+  const { active, select } = useTabs();
+  // render buttons calling select(TabId.Search)…
+};
+```
+
+### How it behaves
+
+- **Back inside a tab** goes through that tab's pages.
+- **Back from a tab's first page** goes to the default tab, where you left it. Back from the default tab's first page leaves the tab area.
+- **Switching tabs** shows the tab where you left it, and never builds up history.
+- **Tapping the active tab** pops it to its first page.
+- **Any navigation from inside a tab belongs to that tab**, whatever its address, so tabs can share routes. That includes links made with React Router directly.
+- **Leaving the tab area** (logout, onboarding) clears every tab's history at once: pass `exitTabs` to `useNavigate`, `Link`, `NavLink` or `Navigate`.
+
+  ```tsx
+  <Link to="/login" exitTabs replace>Log out</Link>
+  ```
+- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app.
+- **A reload** keeps the active tab, its pages and every other tab's pages.
+
+### How the history is kept
+
+The browser history only holds the **active** tab's pages. The default tab's pages stay at the bottom; any other tab takes one slot above them.
+
+```
+Home, two pages deep:        [Home] [Home: post 5]
+Search, one page deeper:     [Home] [Home: post 5] [Search] [Search: results]
+Switch to Profile:           [Home] [Home: post 5] [Profile]           ← Search's pages saved
+Switch to Search:            [Home] [Home: post 5] [Search: results]   ← one entry
+Back:                        [Home] [Home: post 5] [Search]            ← same entry, changed
+Back:                        [Home] [Home: post 5]
+```
+
+- **A switch costs one close and one push, however deep the tab is.** The tab's other pages are kept in the history state of its entry, not as entries.
+- **Back through those kept pages** is noticed and undone: the router goes forward again and changes the entry to the previous page, with the screen kept still meanwhile.
+- **What a tab keeps** is each page's address and its [in-place values](#in-place-values), such as a search box's text. Dialogs, menus and other layers close on a switch.
+- **How much it keeps:** at most 50 pages per tab.
+
+### Views
+
+- **Inactive views stay mounted and hidden**, so screens keep their state and unsaved work across switches, and switching never asks a [leave guard](#useleaveguard). Leaving the tab area (`exitTabs`) does ask, as views unmount.
+- **A hidden view shows its tab's last page.** It can't navigate or change location state, and its location doesn't change while other tabs navigate.
+- **`keepMounted={false}`** on a `TabView` unmounts it while hidden, for heavy screens on low-memory phones. Its screens lose their local state.
+
+`TabView` renders a `div` (hidden while inactive) and passes other props to it, such as `className`.
+
 ## Hooks
+
+### `useTabs`
+
+The nearest tabbed area: the tab on show, and switching tabs.
+
+```tsx
+const { active, select, popToRoot } = useTabs();
+```
+
+**Returns:** `{ active: string; select: (tab: string) => void; popToRoot: () => void }`
+- `active` is the tab on show; it changes as soon as `select` is called.
+- `select(tab)` switches to a tab. On the active tab, it pops to the first page.
+- `select` and `popToRoot` are stable.
+
+---
 
 ### `useLocationState`
 
@@ -345,11 +438,13 @@ import { usePWARouting } from "@pwabucket/pwa-router";
 const { resolvedLocation, isCorrecting } = usePWARouting();
 ```
 
-**Returns:** `PWARoutingContextValue` — `{ resolvedLocation: Location; isCorrecting: boolean }`
+**Returns:** `PWARoutingContextValue` — `{ resolvedLocation: Location; isCorrecting: boolean; isInactive: boolean }`
 
 `resolvedLocation` is the location the engine is settling on, with the values on their way to the history laid over it.
 
-`isCorrecting` is `true` while the engine is correcting the history: going back to a position, discarding stale non-persistent state, closing a layer from depth, or undoing a guarded move. Navigations made through this package are ignored meanwhile.
+`isCorrecting` is `true` while the engine is correcting the history: going back to a position, discarding stale non-persistent state, closing a layer from depth, undoing a guarded move, or recording a tab page. Navigations made through this package are ignored meanwhile.
+
+`isInactive` is `true` inside a hidden tab, whose navigations are ignored.
 
 ---
 
@@ -366,6 +461,8 @@ Drop-in replacement for React Router's `useNavigate` that is aware of the provid
 - Calls are ignored while `isCorrecting` is `true`, so they can't race a correction.
 - A push from an entry holding [non-inherited state](#non-inherited-state) replaces that entry (pass `replace` explicitly to override), so back returns to the entry before it.
 - The returned function is stable across navigations.
+- Calls from a hidden tab are ignored.
+- Pass `exitTabs: true` to leave the [tabbed area](#tabbed-apps), clearing every tab's history.
 
 ---
 
@@ -418,7 +515,8 @@ import { LocationStateDefaultsProvider } from "@pwabucket/pwa-router";
 ### `Link` / `NavLink` / `Navigate` / `Routes`
 
 Drop-in replacements for React Router's `Link`, `NavLink`, `Navigate` and `Routes`, with the same props.
-- Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting, and pushes from an entry holding non-inherited state replace it.
+- Like [`useNavigate`](#usenavigate), clicks are ignored while the provider is correcting or from a hidden tab, and pushes from an entry holding non-inherited state replace it.
+- `Link`, `NavLink` and `Navigate` take `exitTabs` to leave the [tabbed area](#tabbed-apps).
 - `NavLink` matches its active state against `resolvedLocation`.
 - `Navigate` waits for a correction to finish before redirecting.
 - `Routes` matches against `resolvedLocation` unless a `location` is passed.
@@ -434,6 +532,23 @@ import { Link, Navigate, NavLink } from "@pwabucket/pwa-router";
 
 Prefer these and the hooks above over React Router's, so navigation goes through the provider.
 
+### `TabsRoot` / `TabView`
+
+See [Tabbed apps](#tabbed-apps).
+
+| `TabsRoot` prop | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | The tabbed area's id |
+| `tabs` | `TabDefinition[]` | Every tab: `{ id: string; root: string }`, where `root` is the path of its first page. Keep the list constant |
+| `defaultTab` | `string` | The tab at the bottom: back from any other tab returns to it |
+
+| `TabView` prop | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | The tab this view shows |
+| `keepMounted` | `boolean?` | Keep the view mounted while hidden (default: `true`) |
+
+One tabbed area per app is supported.
+
 ### `PWARouter`
 
 A `BrowserRouter` with the `PWARoutingProvider` already inside. Takes the same props as `BrowserRouter`, plus [`deepLinkHome`](#props).
@@ -446,7 +561,7 @@ Exposes the engine's status to end-to-end tests as an attribute on the root elem
 
 People open PWAs directly on inner pages, from shared links or home-screen shortcuts. With nothing earlier in the tab, the system back gesture closes the app instead of going home.
 
-With `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
+Inside a [tabbed area](#tabbed-apps) this happens on its own, with the tab roots underneath. Elsewhere, with `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
 
 ## Testing
 
@@ -509,6 +624,8 @@ The following types are exported for convenience:
 - **`SelectLocationTab<T>`**, **`UseLocationTabReturn<T>`**
 - **`LocationPopupProps`**, **`LocationStateDefaultsProviderProps`**
 - **`UseLeaveGuardOptions`**, **`LeaveGuardControls`**
+- **`TabsRootProps`**, **`TabViewProps`**, **`TabDefinition`**, **`TabsControls`**
+- **`PWANavigateFunction`**, **`PWANavigateOptions`**, **`PWALinkProps`**, **`PWANavLinkProps`**, **`PWANavigateProps`**
 
 ## License
 
