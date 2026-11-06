@@ -151,7 +151,7 @@ const planSelect = (
   const savedSteps = memory.saved[target];
   const targetSteps = savedSteps?.length
     ? savedSteps
-    : [rootPageStep(findTab(config, target), newStepId())];
+    : [rootPageStep(findTab(config, target), area, newStepId())];
   const top = targetSteps[targetSteps.length - 1];
 
   return {
@@ -184,7 +184,7 @@ const planPopToRoot = (
   newStepId: () => StepId,
 ): TabsPlan | null => {
   const { location, record, area } = entry;
-  const root = rootPageStep(findTab(config, area.active), newStepId());
+  const root = rootPageStep(findTab(config, area.active), area, newStepId());
   const rootPath = readStepPath(root);
   const start = readTabStart(area, config);
   const landing = landOn(entry, start);
@@ -194,7 +194,7 @@ const planPopToRoot = (
     landing === undefined &&
     readPageSteps(area).length <= 1 &&
     location.pathname === rootPath.pathname &&
-    !location.search;
+    location.search === rootPath.search;
 
   if (isOnRoot) return null;
 
@@ -300,7 +300,7 @@ export const adoptTabs = (
     return { ...pruneSteps(previous.area, record.values), ...latest };
   }
 
-  /* A new area: its tab is picked by the address */
+  /* A new area: its tab is picked by the address, which tabs without a root start on */
   const area = createArea(
     config.id,
     matchTab(config, location.pathname),
@@ -308,10 +308,12 @@ export const adoptTabs = (
     historyIndex,
     config.defaultTab,
   );
+  const { pathname, search, hash } = location;
 
   return {
     ...area,
     ...latest,
+    address: { pathname, search, hash },
     steps: [{ id: newStepId(), kind: "page", position: historyLength }],
   };
 };
@@ -374,14 +376,15 @@ export const planBackfill = (
   const { location, record, area } = entry;
   const isDefaultTab = area.active === config.defaultTab;
   const current = saveTabSteps(area, location, record).at(-1);
-  if (!current) return null;
+  const defaultTab = findTab(config, config.defaultTab);
+
+  /* A default tab without a root starts where the area opened: nothing goes below */
+  if (!current || defaultTab.root === undefined) return null;
 
   /* The pages from the bottom: default root, tab root, then the current page */
-  const pages: StepRecord[] = [
-    rootPageStep(findTab(config, config.defaultTab), newStepId()),
-  ];
+  const pages: StepRecord[] = [rootPageStep(defaultTab, area, newStepId())];
   if (!isDefaultTab) {
-    pages.push(rootPageStep(findTab(config, area.active), newStepId()));
+    pages.push(rootPageStep(findTab(config, area.active), area, newStepId()));
   }
 
   const lowest = pages[pages.length - 1];

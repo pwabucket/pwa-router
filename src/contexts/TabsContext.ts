@@ -1,4 +1,5 @@
 import { createContext } from "react";
+import type { Address } from "../core/record";
 import type { SavedTabSteps, TabsConfig } from "../core/tabs";
 
 /** A tabbed area as seen by its views and controls */
@@ -10,6 +11,8 @@ interface TabsContextValue {
   liveTab: string;
   /** Saved steps of the tabs that aren't active */
   saved: SavedTabSteps;
+  /** The address the area was opened on; tabs without a root start there */
+  address: Address;
   /** Switches to a tab; the active one pops to its root */
   select: (tab: string) => void;
   /** Pops the active tab to its root */

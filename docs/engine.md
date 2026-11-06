@@ -4,7 +4,7 @@ For people changing the router itself. The README covers using it.
 
 ## The model
 - **Every entry carries one engine record**, under the `__router` key of its history state (`src/core/record.ts`). App values stay top-level in `location.state`.
-- **An area** is a run of entries with one owner. The **root area** is the whole app. Each `TabsRoot` is a **tab area**, and a tab area inside a `TabView` is nested in that tab. The record lists the areas on the live path, outermost first.
+- **An area** is a run of entries with one owner. The **root area** is the whole app. Each `TabsRoot` is a **tab area**, and a tab area inside a `TabView` is nested in that tab. The record lists the areas on the live path, outermost first. A tab area also records the address it was opened on, where its tabs without a `root` start.
 - **A step** is one entry's worth of an area: a `page` (a navigation) or a `layer` (a pushed location state value). A step is **real** (it has an entry, at a `position`: the history length right after its push) or **virtual** (kept only as a snapshot, after a tab was restored into one entry).
 - **Values point at steps**, not at positions: each value records its area, the step of its first push and of its latest push, and its `persist` / `inherit` flags.
 - **A step keeps a snapshot** (address, values and inner areas) once something is pushed above it in a tab area, and the current step when its tab is saved. A snapshot keeps every value but `persist: false` and `inherit: false` ones; a saved layer step whose own value is dropped goes with it (`saveSteps` in `src/core/steps.ts`).

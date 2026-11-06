@@ -52,11 +52,12 @@ const TabView = ({
 
   /* The tab's saved top step, or its root */
   const savedSteps = tabs.saved[id];
+  const { config, address } = tabs;
   const savedStep = useMemo(
     () =>
       savedSteps?.[savedSteps.length - 1] ??
-      rootPageStep(findTab(tabs.config, id), `${id}:root`),
-    [savedSteps, tabs.config, id],
+      rootPageStep(findTab(config, id), { address }, `${id}:root`),
+    [savedSteps, config, address, id],
   );
 
   /* The live view follows the real location; it can't act while hidden */

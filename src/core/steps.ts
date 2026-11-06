@@ -1,5 +1,6 @@
 import {
   findArea,
+  type Address,
   readAppValues,
   type AreaRecord,
   type EntryRecord,
@@ -9,13 +10,6 @@ import {
   type StepSnapshot,
   type ValueRecord,
 } from "./record";
-
-/** The address of a location */
-export interface Address {
-  pathname: string;
-  search: string;
-  hash: string;
-}
 
 /** A value a saved step keeps: every one but those marked persist: false or inherit: false */
 export const isKeptValue = (value: ValueRecord | undefined) =>

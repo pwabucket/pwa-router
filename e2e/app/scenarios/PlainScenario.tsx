@@ -10,6 +10,7 @@ const PlainScenario = () => (
     <Link to="/guard-page">Go to guard page</Link>
     <Link to="/guard-layer">Go to guard layer</Link>
     <Link to="/tabbed">Go to tabbed app</Link>
+    <Link to="/layout">Go to layout</Link>
   </>
 );
 

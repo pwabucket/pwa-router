@@ -133,7 +133,7 @@ const TabBar = () => {
   ```tsx
   <Link to="/login" exitTabs replace>Log out</Link>
   ```
-- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app.
+- **Opened directly on a tab page** (a shared link), the app picks the tab whose `root` is the longest match of the address, or the default tab when none matches. On the first tap, the default tab's first page and the tab's first page are put underneath, so back goes there before leaving the app.
 - **A reload** keeps the active tab, its pages and layers, and every other tab's.
 
 ### How the history is kept
@@ -155,6 +155,32 @@ Back:                        [Home] [Home: post 5]
   - dialogs, panels, selections and [in-place values](#in-place-values) such as a search box's text come back with the tab;
   - popups and menus ([`useLocationPopup`](#uselocationpopup)) close on a switch. On the default tab they close before it, and the rest stays open below.
 - **How much it keeps:** at most 50 pages and layers per tab.
+
+### Tabs at one address
+
+For a page whose tabs share its address, where moving inside a tab is location state (opening an item, then its panel). Leave out `root`: every tab starts on the address the page was opened on.
+
+```tsx
+/** The page's tabs, all at its address */
+const TABS = [{ id: "canvas" }, { id: "items" }, { id: "settings" }];
+
+<TabsRoot id="layout" tabs={TABS} defaultTab="canvas">
+  <TabBar />
+  <TabView id="canvas">
+    <Canvas />
+  </TabView>
+  <TabView id="items">
+    <Items />
+  </TabView>
+  <TabView id="settings">
+    <Settings />
+  </TabView>
+</TabsRoot>;
+```
+
+- **The area starts where the `TabsRoot` mounts.** Back from the default tab leaves the page.
+- **Each tab keeps its layers** the way an app's tab keeps pages: one slot, one push per switch, and back steps through them in one entry.
+- **A link to the page opens the default tab**, with nothing put underneath. Tabs without a `root` are never picked from an address; tabs with one still are, so both kinds can mix.
 
 ### Views
 
@@ -350,6 +376,7 @@ selectTab("overview"); // closes it, and anything opened on top
   ```tsx
   const [itemId, showItem] = useLocationTab<string | null>("item", null);
   ```
+- **`useLocationTab` or `TabsRoot`?** `useLocationTab` is one value, and the tabs other than the default share one entry: layers opened on one of them close when you switch away from it. When each tab should keep its layers across switches, use a `TabsRoot` with [tabs at one address](#tabs-at-one-address).
 
 **Returns:** `[T, (tab: T, options?: SetLocationStateOptions) => void]`
 
@@ -542,7 +569,7 @@ See [Tabbed apps](#tabbed-apps).
 | `TabsRoot` prop | Type | Description |
 | --- | --- | --- |
 | `id` | `string` | The tabbed area's id |
-| `tabs` | `TabDefinition[]` | Every tab: `{ id: string; root: string }`, where `root` is the path of its first page. Keep the list constant |
+| `tabs` | `TabDefinition[]` | Every tab: `{ id: string; root?: string }`, where `root` is the path of its first page. Without one, the tab starts on the address the area was opened on ([tabs at one address](#tabs-at-one-address)). Keep the list constant |
 | `defaultTab` | `string` | The tab at the bottom: back from any other tab returns to it |
 
 | `TabView` prop | Type | Description |
@@ -564,7 +591,7 @@ Exposes the engine's status to end-to-end tests as an attribute on the root elem
 
 People open PWAs directly on inner pages, from shared links or home-screen shortcuts. With nothing earlier in the tab, the system back gesture closes the app instead of going home.
 
-Inside a [tabbed area](#tabbed-apps) this happens on its own, with the tab roots underneath. Elsewhere, with `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
+Inside a [tabbed area](#tabbed-apps) this happens on its own, with the tab roots underneath. A default tab without a `root` puts nothing underneath. Elsewhere, with `deepLinkHome` set, when the app is first opened on an inner page (the first entry, with no state), the router replaces that entry with the home path and pushes the inner page back on top. This happens during the user's first click or key press, because browsers may skip entries added without a user interaction when the back button is pressed. Reloads and returning to the app add nothing more.
 
 ## Testing
 

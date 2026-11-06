@@ -1,6 +1,13 @@
 /** The key of the engine's record in every entry's state */
 export const ROUTER_RECORD = "__router";
 
+/** The address of a location */
+export interface Address {
+  pathname: string;
+  search: string;
+  hash: string;
+}
+
 /** A step's unique id */
 export type StepId = string;
 
@@ -59,6 +66,8 @@ export interface AreaRecord {
   start: number;
   /** React Router's index of the first entry */
   startIndex: number;
+  /** The address a tab area was opened on; its tabs without a root start there */
+  address?: Address;
 }
 
 /** The engine's record on an entry */

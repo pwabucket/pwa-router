@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adoptTabs,
   isDefaultCollapsed,
+  planBackfill,
   planTabsOp,
   popToStep,
 } from "../planTabs";
@@ -14,7 +15,7 @@ import {
   type AreaRecord,
   type StepRecord,
 } from "../record";
-import type { TabsConfig } from "../tabs";
+import { matchTab, type TabsConfig } from "../tabs";
 import { stepIds } from "./helpers";
 
 /** The tabbed area of the tests */
@@ -270,3 +271,92 @@ describe("a restored area's default tab", () => {
   });
 });
 
+describe("tabs without a root", () => {
+  /** Tabs sharing the address of the page they're on */
+  const layout: TabsConfig = {
+    id: "main",
+    defaultTab: "canvas",
+    tabs: [{ id: "canvas" }, { id: "items" }, { id: "settings", root: "/s" }],
+  };
+
+  /** The area opened on /layout?doc=5, on the given tab */
+  const opened = (active: string, steps: StepRecord[]) => ({
+    ...createArea("main", active, 1, 0, "canvas"),
+    address: { pathname: "/layout", search: "?doc=5", hash: "" },
+    steps,
+  });
+
+  /** An entry on /layout?doc=5 */
+  const layoutEntry = (area: AreaRecord) => {
+    const tabEntry = entry("/layout", area);
+    tabEntry.location.search = "?doc=5";
+    return tabEntry;
+  };
+
+  it("never match an address", () => {
+    expect(matchTab(layout, "/layout")).toBe("canvas");
+    expect(matchTab(layout, "/s/deep")).toBe("settings");
+  });
+
+  it("record the address a new area opens on", () => {
+    const area = adoptTabs(
+      layout,
+      null,
+      { ...layoutEntry(opened("canvas", [])).location, state: null },
+      createRecord(),
+      "PUSH",
+      memory,
+      1,
+      0,
+      stepIds(),
+    );
+
+    expect(area.active).toBe("canvas");
+    expect(area.address).toEqual({
+      pathname: "/layout",
+      search: "?doc=5",
+      hash: "",
+    });
+  });
+
+  it("start on the area's address when first selected", () => {
+    const plan = planTabsOp(
+      { kind: "select", area: "main", tab: "items" },
+      layout,
+      layoutEntry(opened("canvas", [page("canvas", 1, "/layout")])),
+      memory,
+      stepIds(),
+    );
+
+    expect(plan?.write?.to).toEqual({
+      pathname: "/layout",
+      search: "?doc=5",
+      hash: "",
+    });
+    expect(readRecord(plan!.write!.buildState(2))!.areas[1].active).toBe(
+      "items",
+    );
+  });
+
+  it("are already on their root on the area's address", () => {
+    const plan = planTabsOp(
+      { kind: "popToRoot", area: "main" },
+      layout,
+      layoutEntry(opened("canvas", [page("canvas", 1, "/layout")])),
+      memory,
+      stepIds(),
+    );
+
+    expect(plan).toBeNull();
+  });
+
+  it("put nothing under a first entry when the default has no root", () => {
+    const backfill = planBackfill(
+      layout,
+      layoutEntry(opened("canvas", [page("canvas", 1, "/layout")])),
+      stepIds(),
+    );
+
+    expect(backfill).toBeNull();
+  });
+});

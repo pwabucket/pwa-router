@@ -291,4 +291,34 @@ describe("planChanges", () => {
     if (plan.kind !== "write") throw new Error("expected a write");
     expect(readRecord(plan.state)!.areas[0].steps[0].snapshot).toBeUndefined();
   });
+
+  it("closes several restored values onto the lowest virtual step", () => {
+    const tabValue = (latest: string) => ({
+      ...pushedValue(latest),
+      area: "tabs",
+    });
+    const record = {
+      ...createRecord(),
+      values: { item: tabValue("item"), options: tabValue("options") },
+      areas: [
+        createRecord().areas[0],
+        tabArea([
+          step("list", null, "page"),
+          step("item", null),
+          step("options", 5),
+        ]),
+      ],
+    };
+    const plan = planChanges(
+      entry({ item: 4, options: true }, record),
+      [change("options", undefined), change("item", undefined)],
+      stepIds(),
+    );
+
+    expect(plan).toMatchObject({
+      kind: "close",
+      keys: ["options", "item"],
+      target: { kind: "virtualPop", step: { id: "list" } },
+    });
+  });
 });

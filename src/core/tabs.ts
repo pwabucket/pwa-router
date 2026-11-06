@@ -19,8 +19,8 @@ import {
 /** A tab of a tabbed area */
 export interface TabDefinition {
   id: string;
-  /** The path of the tab's first page; deep links pick their tab by it */
-  root: string;
+  /** The path of the tab's first page; deep links pick their tab by it. Without one, the tab starts on the address the area was opened on */
+  root?: string;
 }
 
 /** A tabbed area as registered by TabsRoot */
@@ -104,32 +104,48 @@ export const readDroppedLanding = (record: EntryRecord) => {
   return landing;
 };
 
-/** A tab's first page, as a new page step */
-export const rootPageStep = (tab: TabDefinition, id: string): StepRecord => ({
-  id,
-  kind: "page",
-  position: null,
-  snapshot: {
-    pathname: tab.root,
-    search: "",
-    hash: "",
-    values: {},
-    record: { values: {}, areas: [] },
-  },
-});
+/** A tab's first page, as a new page step: its root, or the area's address */
+export const rootPageStep = (
+  tab: TabDefinition,
+  area: Pick<AreaRecord, "address">,
+  id: string,
+): StepRecord => {
+  const address =
+    tab.root === undefined
+      ? area.address
+      : { pathname: tab.root, search: "", hash: "" };
 
-/** The tab whose root is the longest prefix of the pathname, or the default */
+  return {
+    id,
+    kind: "page",
+    position: null,
+    snapshot: {
+      pathname: address?.pathname ?? "/",
+      search: address?.search ?? "",
+      hash: address?.hash ?? "",
+      values: {},
+      record: { values: {}, areas: [] },
+    },
+  };
+};
+
+/** The tab whose root is the longest prefix of the pathname, or the default; tabs without a root never match */
 export const matchTab = (config: TabsConfig, pathname: string) => {
-  let match: TabDefinition | undefined;
+  let match: { id: string; root: string } | undefined;
 
   for (const tab of config.tabs) {
+    if (tab.root === undefined) continue;
+
+    /* The root as a prefix, without a trailing slash */
     const root = tab.root.replace(/\/$/, "");
     const isPrefix =
       pathname === tab.root ||
       pathname === root ||
       pathname.startsWith(`${root}/`);
 
-    if (isPrefix && (!match || root.length > match.root.length)) match = tab;
+    if (isPrefix && (!match || root.length > match.root.length)) {
+      match = { id: tab.id, root };
+    }
   }
 
   return match?.id ?? config.defaultTab;

@@ -1,10 +1,12 @@
 import type { NavigateOptions } from "react-router";
 import {
   ROOT_AREA,
+  findArea,
   innermostArea,
   updateArea,
   withoutRecord,
   writeRecord,
+  type Address,
   type EntryRecord,
   type StepId,
   type ValueRecord,
@@ -15,7 +17,6 @@ import {
   findStepIndex,
   pruneSteps,
   snapshotStep,
-  type Address,
   type CloseTarget,
 } from "./steps";
 
@@ -86,11 +87,32 @@ export type ChangesPlan = NonePlan | ClosePlan | WritePlan;
 const isInPlace = (change: ValueChange) =>
   change.replace || change.options?.replace === true;
 
-/** The entry a close target lands on, to compare targets */
-const landingEntry = (target: CloseTarget) => {
-  if (target.kind === "land") return target.before - 1;
-  if (target.kind === "virtualPop") return target.position;
-  return Infinity;
+/** How low a close target lands: its entry, then the step shown there (a real entry shows its top) */
+const readLanding = (record: EntryRecord, target: CloseTarget) => {
+  if (target.kind === "land") {
+    return { entry: target.before - 1, step: Infinity };
+  }
+
+  if (target.kind === "virtualPop") {
+    const area = findArea(record, target.area)!;
+    return {
+      entry: target.position,
+      step: findStepIndex(area, target.step.id),
+    };
+  }
+
+  return { entry: Infinity, step: Infinity };
+};
+
+/** The close target landing lower: an earlier entry, or a lower step in the same one */
+const isLowerLanding = (
+  record: EntryRecord,
+  candidate: CloseTarget,
+  lowest: CloseTarget,
+) => {
+  const a = readLanding(record, candidate);
+  const b = readLanding(record, lowest);
+  return a.entry !== b.entry ? a.entry < b.entry : a.step < b.step;
 };
 
 /** Plans a close of every cleared value: the lowest landing wins */
@@ -107,7 +129,7 @@ const planClose = (
   const recorded = targets.filter((target) => target.kind !== "back");
   const target = recorded.length
     ? recorded.reduce((lowest, candidate) =>
-        landingEntry(candidate) < landingEntry(lowest) ? candidate : lowest,
+        isLowerLanding(entry.record, candidate, lowest) ? candidate : lowest,
       )
     : ({ kind: "back" } as const);
 

@@ -5,6 +5,7 @@ import { GuardPageScenario } from "./GuardPageScenario";
 import { EphemeralScenario } from "./EphemeralScenario";
 import { IframeScenario } from "./IframeScenario";
 import { InPlaceScenario } from "./InPlaceScenario";
+import { LayoutScenario } from "./LayoutScenario";
 import { NavigateBackScenario } from "./NavigateBackScenario";
 import { NonInheritedScenario } from "./NonInheritedScenario";
 import { NestedTabsScenario } from "./NestedTabsScenario";
@@ -37,6 +38,7 @@ export const scenarios = [
   { path: "/tabs", element: <TabsScenario /> },
   { path: "/tabbed/*", element: <TabbedScenario /> },
   { path: "/nested/*", element: <NestedTabsScenario /> },
+  { path: "/layout", element: <LayoutScenario /> },
   { path: "/from-position", element: <FromPositionScenario /> },
   { path: "/search-params", element: <SearchParamsScenario /> },
   { path: "/nested-ephemeral", element: <NestedEphemeralScenario /> },
