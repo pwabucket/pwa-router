@@ -1,43 +1,71 @@
+import type { Location } from "react-router";
 import { readEntry } from "../../../core/legacy";
-import { popToStep } from "../../../core/planTabs";
+import {
+  isDefaultCollapsed,
+  popToStep,
+  showDefaultTab,
+} from "../../../core/planTabs";
 import { findFirstRealIndex } from "../../../core/steps";
 import { readPagePath } from "../../../core/tabs";
 import type { MoveDecider } from "./types";
 
-/** The innermost tab area of a state when its current entry is a restored one with virtual pages below */
-const readRestoredArea = (state: unknown) => {
-  const { record } = readEntry(state);
-  const area = record.areas[record.areas.length - 1];
-  if (record.areas.length < 2) return undefined;
+/** What a back out of a restored entry shows instead, in that entry */
+interface RestoredPage {
+  to: ReturnType<typeof readPagePath>;
+  state: unknown;
+}
 
-  /* The current step is the area's lowest real one, with virtual steps below */
-  const firstReal = findFirstRealIndex(area);
-  const isRestored = firstReal > 0 && firstReal === area.steps.length - 1;
+/** The page a back out of a restored entry shows, from the innermost area outwards */
+const findRestoredPage = (from: Location): RestoredPage | undefined => {
+  const { record } = readEntry(from.state);
 
-  return isRestored ? { area, record, firstReal } : undefined;
+  for (let index = record.areas.length - 1; index > 0; index--) {
+    const area = record.areas[index];
+    const firstReal = findFirstRealIndex(area);
+    const current = area.steps.length - 1;
+
+    /* Real entries above: back is an ordinary back */
+    if (firstReal !== current) return undefined;
+
+    /* Virtual pages below this entry: show the one below */
+    const position = area.steps[firstReal].position!;
+
+    if (firstReal > 0) {
+      const page = area.steps[firstReal - 1];
+      return {
+        to: readPagePath(page),
+        state: popToStep(area, record, page.id, position),
+      };
+    }
+
+    /* The tab's root after a restore: show the default tab */
+    if (isDefaultCollapsed(area, position)) {
+      const pages = area.saved[area.defaultTab];
+      return {
+        to: readPagePath(pages[pages.length - 1]),
+        state: showDefaultTab(area, record, from, position),
+      };
+    }
+
+    /* This area only holds this entry: look at the area around it */
+  }
+
+  return undefined;
 };
 
 /** A decider undoing a back out of a restored tab's entry, to show its previous page there */
 const virtualPageDecider: MoveDecider = ({ from, type, delta }) => {
   if (type !== "POP" || delta !== -1) return undefined;
 
-  const restored = readRestoredArea(from.state);
+  const restored = findRestoredPage(from);
   if (!restored) return undefined;
 
   return {
     undo: "traverse",
 
-    /* Show the tab's previous page in the restored entry */
-    onLanded: (navigate) => {
-      const { area, record, firstReal } = restored;
-      const page = area.steps[firstReal - 1];
-      const position = area.steps[firstReal].position!;
-
-      navigate(readPagePath(page), {
-        replace: true,
-        state: popToStep(area, record, page.id, position),
-      });
-    },
+    /* Show the page in the restored entry */
+    onLanded: (navigate) =>
+      navigate(restored.to, { replace: true, state: restored.state }),
   };
 };
 

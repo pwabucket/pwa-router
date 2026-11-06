@@ -78,10 +78,16 @@ const TabView = ({
   /** The routing the view's screens read */
   const viewRouting = isLive ? liveRouting : savedRouting;
 
+  /** The area and tab this view shows, for nested areas and guards */
+  const place = useMemo(
+    () => ({ area: tabs.config.id, tab: id }),
+    [tabs.config.id, id],
+  );
+
   if (!isShown && !keepMounted) return null;
 
   return (
-    <TabViewContext.Provider value={id}>
+    <TabViewContext.Provider value={place}>
       <PWARoutingContext.Provider value={viewRouting}>
         <LocationStateTransactionsContext.Provider
           value={canAct ? queueChange : ignoreChange}

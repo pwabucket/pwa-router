@@ -1,19 +1,18 @@
 import { createContext } from "react";
 import type { QueueTabsOp } from "../providers/engine/useLocationStateTransactions";
-import type { AreaRecord, EntryRecord } from "../core/record";
+import type { EntryRecord } from "../core/record";
 import type { TabsConfig, TabsMemory } from "../core/tabs";
 
 /** The engine side of a tabbed area, consumed by TabsRoot */
 interface TabsEngineContextValue {
-  config: TabsConfig | null;
-  /** The tab area of the current entry, or the one it is about to take */
-  area: AreaRecord | undefined;
-  /** The current entry's record */
+  /** Every registered tabbed area */
+  configs: TabsConfig[];
+  /** The current entry's record, or the one it is about to take */
   record: EntryRecord;
-  /** The latest saved pages of the tabs that aren't active */
-  memory: TabsMemory;
-  /** The tab being switched to, shown at once */
-  pendingTab: string | null;
+  /** The latest saved pages of each area's inactive tabs, by area id */
+  memories: Record<string, TabsMemory>;
+  /** The tab being switched to in an area, shown at once */
+  pendingTab: { area: string; tab: string } | null;
   register: (config: TabsConfig) => void;
   unregister: (id: string) => void;
   queueTabsOp: QueueTabsOp;

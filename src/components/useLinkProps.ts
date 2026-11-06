@@ -1,6 +1,7 @@
 import { useCallback, useContext } from "react";
 import { useResolvedPath, type LinkProps } from "react-router";
 import { TabsEngineContext } from "../contexts/TabsEngineContext";
+import { useExitArea } from "../hooks/useExitArea";
 import { usePWARouting } from "../hooks/usePWARouting";
 import { isNonInheritedEntry } from "../core/queries";
 
@@ -25,6 +26,7 @@ const useLinkProps = ({
     isInactive,
   } = usePWARouting();
   const tabsEngine = useContext(TabsEngineContext);
+  const exitArea = useExitArea();
   const resolvedTo = useResolvedPath(to);
 
   const handleClick = useCallback(
@@ -38,10 +40,11 @@ const useLinkProps = ({
       }
 
       /* Leaving the tabbed area runs as a tab operation */
-      if (exitTabs && tabsEngine?.config && !event.defaultPrevented) {
+      if (exitTabs && tabsEngine && exitArea && !event.defaultPrevented) {
         event.preventDefault();
         tabsEngine.queueTabsOp({
           kind: "exit",
+          area: exitArea,
           to: resolvedTo,
           options: { replace, state },
         });
@@ -53,6 +56,7 @@ const useLinkProps = ({
       isInactive,
       exitTabs,
       tabsEngine,
+      exitArea,
       resolvedTo,
       replace,
       state,

@@ -21,6 +21,8 @@ export interface TabsConfig {
   id: string;
   tabs: TabDefinition[];
   defaultTab: string;
+  /** The outer area and tab this area lives in, when nested */
+  parent?: { area: string; tab: string };
 }
 
 /** Saved pages of the tabs that aren't active, by tab */
@@ -42,11 +44,9 @@ export const readTabsArea = (state: unknown, areaId: string) => {
   return area ? { area, record } : undefined;
 };
 
-/** The active tab of the innermost tab area in a state, if any */
-export const readActiveTab = (state: unknown) => {
-  const { areas } = readEntry(state).record;
-  return areas.length > 1 ? areas[areas.length - 1].active : undefined;
-};
+/** The active tab of a tab area in a state, if the area is on its live path */
+export const readActiveTab = (state: unknown, areaId: string) =>
+  findArea(readEntry(state).record, areaId)?.active;
 
 /** The area's page steps, lowest first */
 export const readPageSteps = (area: AreaRecord) =>

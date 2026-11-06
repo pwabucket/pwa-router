@@ -2,6 +2,7 @@ import type { Location, NavigateOptions, To } from "react-router";
 import { hasLayersAbove } from "./queries";
 import {
   createArea,
+  findArea,
   writeRecord,
   type AreaRecord,
   type EntryRecord,
@@ -25,11 +26,11 @@ import {
   type TabsMemory,
 } from "./tabs";
 
-/** A request to change tabs */
+/** A request to change the tabs of an area */
 export type TabsOp =
-  | { kind: "select"; tab: string }
-  | { kind: "popToRoot" }
-  | { kind: "exit"; to: To; options?: NavigateOptions };
+  | { kind: "select"; area: string; tab: string }
+  | { kind: "popToRoot"; area: string }
+  | { kind: "exit"; area: string; to: To; options?: NavigateOptions };
 
 /** One entry written by a tab operation */
 export interface TabsWrite {
@@ -68,6 +69,41 @@ const landOn = ({ location, area }: TabsEntry, position: number) => {
   return isOnPage ? undefined : position + 1;
 };
 
+/** The area was restored into one entry, so its default tab has no entries below the active one */
+export const isDefaultCollapsed = (area: AreaRecord, position: number) =>
+  area.active !== area.defaultTab &&
+  area.start === position &&
+  (area.saved[area.defaultTab]?.length ?? 0) > 0;
+
+/** The state showing the default tab's saved pages in the entry at the position, saving the active tab's */
+export const showDefaultTab = (
+  area: AreaRecord,
+  record: EntryRecord,
+  location: Location,
+  position: number,
+) => {
+  const pages = area.saved[area.defaultTab];
+  const top = pages[pages.length - 1];
+
+  return buildPageState(
+    top,
+    {
+      ...area,
+      active: area.defaultTab,
+      steps: collapseSteps(pages, position),
+      saved: updateSaved(
+        area.saved,
+        area.active,
+        savePages(area, location, record),
+        area.defaultTab,
+      ),
+      savedVersion: area.savedVersion + 1,
+    },
+    record,
+    position,
+  );
+};
+
 /** Plans a switch to another tab: close the slot, then push the tab's top page */
 const planSelect = (
   config: TabsConfig,
@@ -83,6 +119,22 @@ const planSelect = (
     area.active === config.defaultTab
       ? landOn(entry, readPagePosition(area))
       : readTabStart(area, config);
+
+  /* Back to the default tab after a restore: show its pages in the area's entry */
+  const start = readTabStart(area, config);
+  if (target === config.defaultTab && isDefaultCollapsed(area, start)) {
+    const pages = area.saved[area.defaultTab];
+
+    return {
+      landing: landOn(entry, start),
+      write: {
+        to: readPagePath(pages[pages.length - 1]),
+        replace: true,
+        stamp: start,
+        buildState: () => showDefaultTab(area, record, location, start),
+      },
+    };
+  }
 
   /* Back to the default tab: its pages are already below */
   if (target === config.defaultTab) return { landing };
@@ -253,6 +305,7 @@ export const adoptTabs = (
     matchTab(config, location.pathname),
     historyLength,
     historyIndex,
+    config.defaultTab,
   );
 
   return {
@@ -380,3 +433,101 @@ export const writeArea = (
   record: EntryRecord,
   area: AreaRecord,
 ) => writeRecord(state, withArea(record, area));
+
+/** Configs ordered outer first: an area's parent comes before it */
+export const orderConfigs = (configs: TabsConfig[]) => {
+  const byId = new Map(configs.map((config) => [config.id, config]));
+
+  /** How deep an area sits */
+  const depth = (config: TabsConfig): number => {
+    const parent = config.parent && byId.get(config.parent.area);
+    return parent ? depth(parent) + 1 : 0;
+  };
+
+  return [...configs].sort((a, b) => depth(a) - depth(b));
+};
+
+/** The previous settled entry */
+export interface PreviousEntry {
+  location: Location;
+  record: EntryRecord;
+}
+
+/** The record a new entry takes: every live area kept, copied or started, a pushed page in the innermost */
+export const adoptAreas = (
+  configs: TabsConfig[],
+  previous: PreviousEntry | null,
+  location: Location,
+  record: EntryRecord,
+  navigationType: string,
+  memories: Record<string, TabsMemory>,
+  historyLength: number,
+  historyIndex: number,
+  newStepId: () => StepId,
+): EntryRecord | undefined => {
+  const areas: AreaRecord[] = [];
+  const empty: TabsMemory = { version: 0, saved: {} };
+
+  /* The live areas, outer first: an area lives while its parent shows its tab */
+  const live = orderConfigs(configs).filter((config) => {
+    if (!config.parent) return true;
+
+    const { area: parentId, tab } = config.parent;
+    const parent =
+      findArea(record, parentId) ??
+      (previous && findArea(previous.record, parentId));
+    return parent?.active === tab;
+  });
+
+  /* Nothing missing: the entry already carries every live area */
+  if (live.every((config) => findArea(record, config.id))) return undefined;
+
+  const innermost = live[live.length - 1];
+
+  for (const config of live) {
+    const existing = findArea(record, config.id);
+    const previousArea = previous && findArea(previous.record, config.id);
+    const isInnermost = config === innermost;
+
+    /* Kept as written; outer areas copied; the innermost takes the push */
+    if (existing) {
+      areas.push(existing);
+    } else if (
+      previous &&
+      previousArea &&
+      (isInnermost || navigationType === "POP")
+    ) {
+      areas.push(
+        adoptTabs(
+          config,
+          { ...previous, area: previousArea },
+          location,
+          record,
+          navigationType,
+          memories[config.id] ?? empty,
+          historyLength,
+          historyIndex,
+          newStepId,
+        ),
+      );
+    } else if (previousArea) {
+      areas.push(previousArea);
+    } else {
+      areas.push(
+        adoptTabs(
+          config,
+          null,
+          location,
+          record,
+          navigationType,
+          memories[config.id] ?? empty,
+          historyLength,
+          historyIndex,
+          newStepId,
+        ),
+      );
+    }
+  }
+
+  return { ...record, areas: [record.areas[0], ...areas] };
+};

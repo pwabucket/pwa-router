@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { useNavigate, type Location, type To } from "react-router";
 import { readHistoryIndex } from "../../utils/history";
 import { getLocationPath } from "../../utils/location";
-import { planBackfill } from "../../core/planTabs";
-import type { AreaRecord, EntryRecord } from "../../core/record";
+import { orderConfigs, planBackfill } from "../../core/planTabs";
+import { findArea, type EntryRecord } from "../../core/record";
 import { createStepId } from "../../core/stepIds";
 import { readPagePosition, type TabsConfig } from "../../core/tabs";
 import type { EngineWork } from "./EngineWork";
@@ -13,8 +13,7 @@ const ACTIVATION_EVENTS = ["click", "keydown"] as const;
 
 /** The tabbed area, when one is registered */
 interface DeepLinkTabs {
-  config: TabsConfig | null;
-  area: AreaRecord | undefined;
+  configs: TabsConfig[];
   record: EntryRecord;
 }
 
@@ -28,11 +27,14 @@ interface BackfillEntry {
 const planEntries = (
   homePath: string | undefined,
   location: Location,
-  { config, area, record }: DeepLinkTabs,
+  { configs, record }: DeepLinkTabs,
 ): BackfillEntry[] | null => {
   if (readHistoryIndex() !== 0) return null;
 
-  /* A tabbed area's first entry: the default root and the tab's root go below */
+  /* The outermost tabbed area's first entry: its default root and tab root go below */
+  const config = orderConfigs(configs)[0];
+  const area = config && findArea(record, config.id);
+
   if (config) {
     return area && readPagePosition(area) === area.start
       ? planBackfill(config, { location, record, area }, createStepId)
@@ -62,7 +64,7 @@ const useDeepLinkHomeHandler = (
   work: EngineWork,
 ) => {
   const navigate = useNavigate();
-  const hasTabs = tabs.config !== null;
+  const hasTabs = tabs.configs.length > 0;
 
   /* The latest inputs, read on activation */
   const latestRef = useRef({ location, isCorrecting, navigate, tabs });

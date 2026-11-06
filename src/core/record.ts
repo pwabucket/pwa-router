@@ -47,6 +47,8 @@ export interface AreaRecord {
   id: string;
   /** The tab on show; the root area's single tab is "" */
   active: string;
+  /** The tab at the bottom of the area; "" for the root area */
+  defaultTab: string;
   /** The active tab's steps, lowest first, the current one last */
   steps: StepRecord[];
   /** Other tabs' steps, the top one last */
@@ -78,9 +80,11 @@ export const createArea = (
   active: string,
   start: number,
   startIndex: number,
+  defaultTab = "",
 ): AreaRecord => ({
   id,
   active,
+  defaultTab,
   steps: [],
   saved: {},
   savedVersion: 0,

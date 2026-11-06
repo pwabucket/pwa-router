@@ -7,7 +7,9 @@ import {
 } from "react";
 import { TabsContext } from "../../contexts/TabsContext";
 import { TabsEngineContext } from "../../contexts/TabsEngineContext";
+import { TabViewContext } from "../../contexts/TabViewContext";
 import { usePWARouting } from "../../hooks/usePWARouting";
+import { findArea } from "../../core/record";
 import {
   matchTab,
   readTabsArea,
@@ -31,13 +33,14 @@ const EMPTY_SAVED = {};
 /** A tabbed area: every tab keeps its own pages, and only the active one is in history */
 const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
   const engine = useContext(TabsEngineContext)!;
+  const parent = useContext(TabViewContext);
   const { resolvedLocation } = usePWARouting();
   const { register, unregister, queueTabsOp } = engine;
 
-  /* The area as registered with the engine */
+  /* The area as registered with the engine, inside its parent tab when nested */
   const config = useMemo(
-    () => ({ id, tabs, defaultTab }),
-    [id, tabs, defaultTab],
+    () => ({ id, tabs, defaultTab, parent }),
+    [id, tabs, defaultTab, parent],
   );
 
   /* Register the area, and remove it on unmount */
@@ -48,25 +51,26 @@ const TabsRoot = ({ id, tabs, defaultTab, children }: TabsRootProps) => {
   useEffect(() => warnInvalidTabs(config), [config]);
 
   /* The tab of the location on show, and the tab being shown */
-  const isRegistered = engine.config?.id === id;
-  const engineTab = isRegistered ? engine.area?.active : undefined;
+  const engineTab = findArea(engine.record, id)?.active;
   const liveTab =
     readTabsArea(resolvedLocation.state, id)?.area.active ??
     engineTab ??
     matchTab(config, resolvedLocation.pathname);
-  const active = engine.pendingTab ?? liveTab;
-  const saved = isRegistered ? engine.memory.saved : EMPTY_SAVED;
+  const pendingTab =
+    engine.pendingTab?.area === id ? engine.pendingTab.tab : undefined;
+  const active = pendingTab ?? liveTab;
+  const saved = engine.memories[id]?.saved ?? EMPTY_SAVED;
 
   /** Switches to a tab; the active one pops to its root */
   const select = useCallback(
-    (tab: string) => queueTabsOp({ kind: "select", tab }),
-    [queueTabsOp],
+    (tab: string) => queueTabsOp({ kind: "select", area: id, tab }),
+    [queueTabsOp, id],
   );
 
   /** Pops the active tab to its root */
   const popToRoot = useCallback(
-    () => queueTabsOp({ kind: "popToRoot" }),
-    [queueTabsOp],
+    () => queueTabsOp({ kind: "popToRoot", area: id }),
+    [queueTabsOp, id],
   );
 
   const value = useMemo(

@@ -12,8 +12,8 @@ interface LeaveGuard {
   key?: string;
   /** The guarded page */
   pathname: string;
-  /** The tab the guard lives in, when inside a tabbed area */
-  tab?: string;
+  /** The area and tab the guard lives in, when inside a tabbed area */
+  tab?: { area: string; tab: string };
   /** There is unsaved work to protect */
   when: boolean;
   /** The user chose to leave; the guard rests until the move lands */
@@ -32,8 +32,8 @@ export const ROUTER_GUARD = "__router_guard";
 
 /** The guard's scope holds the location: its tab, then its layer or page */
 const isInside = (guard: LeaveGuard, location: Partial<Location>) => {
-  const activeTab = readActiveTab(location.state);
-  if (guard.tab && activeTab && activeTab !== guard.tab) return false;
+  const activeTab = guard.tab && readActiveTab(location.state, guard.tab.area);
+  if (guard.tab && activeTab && activeTab !== guard.tab.tab) return false;
 
   return guard.key
     ? location.state?.[guard.key] != null

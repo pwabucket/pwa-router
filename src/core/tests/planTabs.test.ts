@@ -1,6 +1,11 @@
 import type { Location } from "react-router";
 import { describe, expect, it } from "vitest";
-import { adoptTabs, planTabsOp, popToStep } from "../planTabs";
+import {
+  adoptTabs,
+  isDefaultCollapsed,
+  planTabsOp,
+  popToStep,
+} from "../planTabs";
 import {
   ROUTER_RECORD,
   createArea,
@@ -64,7 +69,7 @@ describe("planTabsOp", () => {
     };
     const saved = { search: [page("search", 3), page("results", 4)] };
     const plan = planTabsOp(
-      { kind: "select", tab: "search" },
+      { kind: "select", area: "main", tab: "search" },
       config,
       entry("/feed", area),
       { version: 2, saved },
@@ -94,7 +99,7 @@ describe("planTabsOp", () => {
       steps: [page("search", 3), page("results", 4)],
     };
     const plan = planTabsOp(
-      { kind: "select", tab: "home" },
+      { kind: "select", area: "main", tab: "home" },
       config,
       entry("/results", area),
       memory,
@@ -110,7 +115,7 @@ describe("planTabsOp", () => {
       steps: [page("search", 3), page("results", 4)],
     };
     const plan = planTabsOp(
-      { kind: "popToRoot" },
+      { kind: "popToRoot", area: "main" },
       config,
       entry("/results", area),
       memory,
@@ -172,3 +177,39 @@ describe("popToStep", () => {
     ]);
   });
 });
+
+describe("a restored area's default tab", () => {
+  /** An area restored into the entry at 7, on search, with home saved */
+  const restored = {
+    ...createArea("main", "search", 7, 2, "home"),
+    steps: [page("search", 7)],
+    saved: { home: [page("feed", null), page("post", null)] },
+  };
+
+  it("is collapsed when the area starts at the active tab's entry", () => {
+    expect(isDefaultCollapsed(restored, 7)).toBe(true);
+    expect(isDefaultCollapsed({ ...restored, start: 3 }, 7)).toBe(false);
+  });
+
+  it("is shown in the same entry when selected, its pages kept virtual", () => {
+    const plan = planTabsOp(
+      { kind: "select", area: "main", tab: "home" },
+      config,
+      entry("/search", restored),
+      memory,
+      stepIds(),
+    );
+
+    expect(plan?.landing).toBeUndefined();
+    expect(plan?.write).toMatchObject({ replace: true, stamp: 7 });
+
+    const area = readRecord(plan!.write!.buildState(7))!.areas[1];
+    expect(area.active).toBe("home");
+    expect(area.steps.map((step) => [step.id, step.position])).toEqual([
+      ["feed", null],
+      ["post", 7],
+    ]);
+    expect(area.saved.search[0].snapshot?.pathname).toBe("/search");
+  });
+});
+

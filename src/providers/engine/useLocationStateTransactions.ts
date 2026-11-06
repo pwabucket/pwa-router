@@ -15,11 +15,7 @@ import {
   type TabsPlan,
   type TabsWrite,
 } from "../../core/planTabs";
-import {
-  findArea,
-  type AreaRecord,
-  type EntryRecord,
-} from "../../core/record";
+import { findArea, type EntryRecord } from "../../core/record";
 import type { CloseTarget } from "../../core/steps";
 import type { TabsConfig, TabsMemory } from "../../core/tabs";
 import type { EngineWork } from "./EngineWork";
@@ -40,14 +36,16 @@ type QueueLocationStateChange = (change: ValueChange) => void;
 /** Queues a tab operation; it runs before the location state changes */
 type QueueTabsOp = (op: TabsOp) => void;
 
-/** What the transactions need from the tabbed area */
+/** What the transactions need from the tabbed areas */
 interface TabsBinding {
-  config: TabsConfig | null;
-  area: AreaRecord | undefined;
+  configs: TabsConfig[];
   record: EntryRecord;
-  memory: TabsMemory;
-  reset: () => void;
+  memories: Record<string, TabsMemory>;
+  reset: (id: string) => void;
 }
+
+/** Memory of an area before any of its entries has settled */
+const EMPTY_MEMORY: TabsMemory = { version: 0, saved: {} };
 
 /** Sets the location kept on show while the engine crosses other entries */
 type ShowLocation = (
@@ -136,8 +134,13 @@ const useLocationStateTransactions = (
   /** Sends a tab operation; false when nothing was sent */
   const sendTabsOp = useCallback(
     (op: TabsOp, location: Location) => {
-      const { config, area, record, memory, reset } =
+      const { configs, record, memories, reset } =
         latestRef.current.tabsBinding;
+
+      /* The operation's area: its config, its record and its memory */
+      const config = configs.find((candidate) => candidate.id === op.area);
+      const area = findArea(record, op.area);
+      const memory = memories[op.area] ?? EMPTY_MEMORY;
 
       /* Nothing to do: the operation is over */
       const entry = area && { location, record, area };
@@ -162,7 +165,7 @@ const useLocationStateTransactions = (
       }
 
       /* Leaving the area forgets every tab's pages */
-      if (op.kind === "exit") reset();
+      if (op.kind === "exit") reset(op.area);
 
       runTabsPlan(plan, location);
       return true;
@@ -351,7 +354,9 @@ const useLocationStateTransactions = (
 
   /* The tab being switched to, shown at once */
   const pendingTab =
-    pendingTabsOp?.kind === "select" ? pendingTabsOp.tab : null;
+    pendingTabsOp?.kind === "select"
+      ? { area: pendingTabsOp.area, tab: pendingTabsOp.tab }
+      : null;
 
   return { overlay, pendingTab, queueChange, queueTabsOp };
 };

@@ -6,6 +6,7 @@ import {
   type To,
 } from "react-router";
 import { TabsEngineContext } from "../contexts/TabsEngineContext";
+import { useExitArea } from "./useExitArea";
 import { usePWARouting } from "./usePWARouting";
 import { isNonInheritedEntry } from "../core/queries";
 
@@ -26,15 +27,16 @@ const useNavigate = (): PWANavigateFunction => {
   const navigate = useRouterNavigate();
   const routing = usePWARouting();
   const tabsEngine = useContext(TabsEngineContext);
+  const exitArea = useExitArea();
 
   /* Keeps the function stable across navigations */
-  const latestRef = useRef({ navigate, routing, tabsEngine });
+  const latestRef = useRef({ navigate, routing, tabsEngine, exitArea });
 
   // oxlint-disable-next-line react/refs
-  latestRef.current = { navigate, routing, tabsEngine };
+  latestRef.current = { navigate, routing, tabsEngine, exitArea };
 
   return useCallback((to: To | number, options?: PWANavigateOptions) => {
-    const { navigate, routing, tabsEngine } = latestRef.current;
+    const { navigate, routing, tabsEngine, exitArea } = latestRef.current;
     const { resolvedLocation: location, isCorrecting, isInactive } = routing;
 
     /* Navigating now would race the engine, or come from a hidden tab */
@@ -48,9 +50,10 @@ const useNavigate = (): PWANavigateFunction => {
     const { exitTabs, ...navigateOptions } = options ?? {};
 
     /* Leaving the tabbed area runs as a tab operation */
-    if (exitTabs && tabsEngine?.config) {
+    if (exitTabs && tabsEngine && exitArea) {
       tabsEngine.queueTabsOp({
         kind: "exit",
+        area: exitArea,
         to: resolvePath(to, location.pathname),
         options: navigateOptions,
       });

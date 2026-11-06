@@ -23,7 +23,7 @@ describe("IntentQueue", () => {
   it("takes a finishing write, then a tab operation, then changes", () => {
     const queue = new IntentQueue();
     queue.queueChange(change("a", 1), undefined);
-    queue.queueTabsOp({ kind: "popToRoot" });
+    queue.queueTabsOp({ kind: "popToRoot", area: "main" });
     queue.continueWith(write);
 
     expect(queue.takeNext()?.kind).toBe("continue");
@@ -39,12 +39,12 @@ describe("IntentQueue", () => {
     const queue = new IntentQueue();
     queue.queueChange(change("a", 1), undefined);
     queue.queueChange(change("a", 2), undefined);
-    queue.queueTabsOp({ kind: "select", tab: "x" });
-    queue.queueTabsOp({ kind: "select", tab: "y" });
+    queue.queueTabsOp({ kind: "select", area: "main", tab: "x" });
+    queue.queueTabsOp({ kind: "select", area: "main", tab: "y" });
 
     expect(queue.takeNext()).toEqual({
       kind: "tabs",
-      op: { kind: "select", tab: "y" },
+      op: { kind: "select", area: "main", tab: "y" },
     });
     expect(queue.takeNext()).toEqual({
       kind: "changes",

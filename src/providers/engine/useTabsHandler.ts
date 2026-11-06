@@ -12,22 +12,66 @@ import {
 } from "react-router";
 import { readEntry } from "../../core/legacy";
 import {
-  adoptTabs,
+  adoptAreas,
   settleMemory,
-  writeArea,
-  type TabsEntry,
+  type PreviousEntry,
 } from "../../core/planTabs";
-import { findArea, type AreaRecord } from "../../core/record";
+import { findArea, writeRecord, type EntryRecord } from "../../core/record";
 import { createStepId } from "../../core/stepIds";
 import type { TabsConfig, TabsMemory } from "../../core/tabs";
 import { readHistoryIndex } from "../../utils/history";
 import { getLocationPath } from "../../utils/location";
 import type { EngineWork } from "./EngineWork";
 
-/** Memory before any entry has settled */
+/** Memory of an area before any of its entries has settled */
 const EMPTY_MEMORY: TabsMemory = { version: 0, saved: {} };
 
-/** Keeps every entry of a registered tabbed area carrying its area record */
+/** Saved pages of every registered area, by area id */
+type TabsMemories = Record<string, TabsMemory>;
+
+/** The saved pages of every area, merged from a newly settled entry */
+const settleMemories = (
+  memories: TabsMemories,
+  configs: TabsConfig[],
+  previous: PreviousEntry | null,
+  record: EntryRecord,
+) => {
+  let next = memories;
+
+  for (const { id } of configs) {
+    const area = findArea(record, id);
+    if (!area) continue;
+
+    /* The area as the previous entry had it */
+    const previousArea = previous && findArea(previous.record, id);
+    const previousEntry = previousArea
+      ? { ...previous, area: previousArea }
+      : null;
+
+    const memory = memories[id] ?? EMPTY_MEMORY;
+    const settled = settleMemory(memory, previousEntry, area);
+    if (settled !== memory) next = { ...next, [id]: settled };
+  }
+
+  return next;
+};
+
+/** The record with every area's saved pages brought up to memory; undefined when already there */
+const syncRecord = (record: EntryRecord, memories: TabsMemories) => {
+  let isStale = false;
+
+  const areas = record.areas.map((area) => {
+    const memory = memories[area.id];
+    if (!memory || area.savedVersion === memory.version) return area;
+
+    isStale = true;
+    return { ...area, saved: memory.saved, savedVersion: memory.version };
+  });
+
+  return isStale ? { ...record, areas } : undefined;
+};
+
+/** Keeps every entry carrying the records of its live tabbed areas */
 const useTabsHandler = (
   location: Location,
   work: EngineWork,
@@ -36,124 +80,116 @@ const useTabsHandler = (
 ) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
-  const [config, setConfig] = useState<TabsConfig | null>(null);
-  const [memory, setMemory] = useState(EMPTY_MEMORY);
-  const [tracked, setTracked] = useState<TabsEntry | null>(null);
+  const [configs, setConfigs] = useState<TabsConfig[]>([]);
+  const [memories, setMemories] = useState<TabsMemories>({});
+  const [tracked, setTracked] = useState<PreviousEntry | null>(null);
 
-  /* The area registered right now; an area unmounting in this commit writes nothing */
-  const registeredIdRef = useRef<string | null>(null);
+  /* The areas registered right now; an area unmounting in this commit writes nothing */
+  const registeredIdsRef = useRef(new Set<string>());
 
-  /* The current entry's record, and its area */
+  /* The current entry's state and record */
   const { state, record } = useMemo(
     () => readEntry(location.state),
     [location.state],
   );
-  const entryArea = config ? findArea(record, config.id) : undefined;
-  const canWrite = config !== null && !isCorrecting && !work.isOperating;
+  const canWrite = configs.length > 0 && !isCorrecting && !work.isOperating;
 
-  /* A new entry of the area without its record takes one (a page push, a replace, a new area) */
-  const adoptedArea = useMemo(
+  /* A new entry missing live areas takes them (a page push, a replace, a new area) */
+  const adoptedRecord = useMemo(
     () =>
-      canWrite && !entryArea
-        ? adoptTabs(
-            config,
+      canWrite
+        ? adoptAreas(
+            configs,
             tracked,
             location,
             record,
             navigationType,
-            memory,
+            memories,
             window.history.length,
             readHistoryIndex() ?? 0,
             createStepId,
           )
         : undefined,
-    [
-      canWrite,
-      config,
-      entryArea,
-      tracked,
-      location,
-      record,
-      navigationType,
-      memory,
-    ],
+    [canWrite, configs, tracked, location, record, navigationType, memories],
   );
 
-  /* Settle on entries that carry the area, merging the saved pages */
-  if (canWrite && entryArea && tracked?.location.key !== location.key) {
-    const nextMemory = settleMemory(memory, tracked, entryArea);
-    setTracked({ location, record, area: entryArea });
-    if (nextMemory !== memory) setMemory(nextMemory);
+  /* Settle on entries carrying every live area, merging the saved pages */
+  const canSettle = canWrite && !adoptedRecord;
+  if (canSettle && tracked?.location.key !== location.key) {
+    const nextMemories = settleMemories(memories, configs, tracked, record);
+    setTracked({ location, record });
+    if (nextMemories !== memories) setMemories(nextMemories);
   }
 
-  /* The entry holds older saved pages than memory */
-  const needsSync =
-    canWrite &&
-    entryArea !== undefined &&
-    entryArea.savedVersion !== memory.version;
+  /* The entry's areas brought up to the saved pages in memory */
+  const syncedRecord = canSettle ? syncRecord(record, memories) : undefined;
 
-  /* Write the adopted or synced area in place */
+  /* Write the adopted or synced record in place */
   useLayoutEffect(() => {
-    const area: AreaRecord | undefined =
-      adoptedArea ??
-      (needsSync && entryArea
-        ? { ...entryArea, saved: memory.saved, savedVersion: memory.version }
-        : undefined);
+    const nextRecord = adoptedRecord ?? syncedRecord;
+    if (!nextRecord) return;
 
-    const isStillRegistered = registeredIdRef.current === config?.id;
-    if (!area || !isStillRegistered || !tryLock()) return;
+    /* Every area in it must still be registered */
+    const isStillRegistered = nextRecord.areas
+      .slice(1)
+      .every((area) => registeredIdsRef.current.has(area.id));
+    if (!isStillRegistered || !tryLock()) return;
 
     navigate(getLocationPath(location), {
       replace: true,
-      state: writeArea(state, record, area),
+      state: writeRecord(state, nextRecord),
     });
-  }, [
-    adoptedArea,
-    needsSync,
-    entryArea,
-    memory,
-    config,
-    location,
-    state,
-    record,
-    navigate,
-    tryLock,
-  ]);
+  }, [adoptedRecord, syncedRecord, location, state, navigate, tryLock]);
 
-  /** Registers the tabbed area */
-  const register = useCallback((nextConfig: TabsConfig) => {
-    registeredIdRef.current = nextConfig.id;
-    setConfig(nextConfig);
+  /** Registers a tabbed area */
+  const register = useCallback((config: TabsConfig) => {
+    registeredIdsRef.current.add(config.id);
+    setConfigs((current) => [
+      ...current.filter((other) => other.id !== config.id),
+      config,
+    ]);
   }, []);
 
-  /** Forgets the tracked entry and the saved pages (leaving the area) */
-  const reset = useCallback(() => {
+  /** Forgets an area's saved pages and the tracked entry (leaving the area) */
+  const reset = useCallback((id: string) => {
     setTracked(null);
-    setMemory(EMPTY_MEMORY);
+    setMemories((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   }, []);
 
-  /** Removes the tabbed area; its memory goes with it */
+  /** Removes a tabbed area; its memory goes with it */
   const unregister = useCallback(
     (id: string) => {
-      if (registeredIdRef.current === id) registeredIdRef.current = null;
-      setConfig((current) => (current?.id === id ? null : current));
-      reset();
+      registeredIdsRef.current.delete(id);
+      setConfigs((current) => current.filter((config) => config.id !== id));
+      reset(id);
     },
     [reset],
   );
 
-  /* The area to render with: the entry's, or the one it is about to take */
-  const area = entryArea ?? adoptedArea;
+  /* The record to render with: the entry's, or the one it is about to take */
+  const shownRecord = adoptedRecord ?? record;
 
   const engine = useMemo(
-    () => ({ config, area, record, memory, register, unregister, reset }),
-    [config, area, record, memory, register, unregister, reset],
+    () => ({
+      configs,
+      record: shownRecord,
+      memories,
+      register,
+      unregister,
+      reset,
+    }),
+    [configs, shownRecord, memories, register, unregister, reset],
   );
 
   return {
     engine,
-    isCorrecting: adoptedArea !== undefined || needsSync,
+    isCorrecting: adoptedRecord !== undefined || syncedRecord !== undefined,
   };
 };
 
 export { useTabsHandler };
+export type { TabsMemories };

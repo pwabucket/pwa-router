@@ -547,7 +547,7 @@ See [Tabbed apps](#tabbed-apps).
 | `id` | `string` | The tab this view shows |
 | `keepMounted` | `boolean?` | Keep the view mounted while hidden (default: `true`) |
 
-One tabbed area per app is supported.
+Tabbed areas can nest: a `TabsRoot` inside a `TabView` is an area of its own, which lives while its parent tab is shown. Switching the outer tab away and back restores the inner tabs, where they were, at one push. A navigation from the outer tab's page, outside the inner tabs, still counts as a page of the inner area.
 
 ### `PWARouter`
 
