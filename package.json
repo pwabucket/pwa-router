@@ -42,15 +42,16 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "typecheck:rr8": "tsc -p tsconfig.rr8.json --noEmit",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "api:list": "node scripts/public-api.mjs",
     "api:check": "node scripts/public-api.mjs | diff - baselines/public-api.txt",
     "preview": "vite preview"
   },
   "peerDependencies": {
+    "@playwright/test": ">=1.40",
     "react": "^18 || ^19",
-    "react-router": "^7 || ^8",
-    "@playwright/test": ">=1.40"
+    "react-router": "^7 || ^8"
   },
   "peerDependenciesMeta": {
     "@playwright/test": {
@@ -71,6 +72,7 @@
     "react-router-8": "npm:react-router@^8.5.1",
     "typescript": "~6.0.3",
     "vite": "^8.3.2",
-    "vite-plugin-dts": "^5.1.2"
+    "vite-plugin-dts": "^5.1.2",
+    "vitest": "^5.1.0"
   }
 }

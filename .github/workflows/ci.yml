@@ -29,6 +29,7 @@ jobs:
             - run: pnpm build
             - run: pnpm api:check
             - run: pnpm typecheck:rr8
+            - run: pnpm test:unit
 
             # Back-gesture flows on React Router 7 and 8
             - run: pnpm exec playwright install --with-deps chromium
