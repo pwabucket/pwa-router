@@ -1,5 +1,4 @@
 import type { Location } from "react-router";
-import { ROUTER_INDEX_PREFIX } from "../constants";
 
 type LocationState = Record<string, unknown> | null | undefined;
 
@@ -9,14 +8,5 @@ export const getLocationPath = ({ pathname, search, hash }: Location) => ({
   search,
   hash,
 });
-
-/** History index stamped by useLocationIndexUpdater under the given key */
-export const readLocationIndex = (
-  state: LocationState,
-  indexKey?: string | null,
-) =>
-  indexKey != null
-    ? (state?.[ROUTER_INDEX_PREFIX + indexKey] as number | undefined)
-    : undefined;
 
 export type { LocationState };

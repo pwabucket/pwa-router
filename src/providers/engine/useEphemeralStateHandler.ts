@@ -5,10 +5,9 @@ import {
   type Location,
 } from "react-router";
 import { routerState } from "../../constants";
-import {
-  getLocationPath,
-  readLocationIndex,
-} from "../../utils/location";
+import { readHistoryIndex } from "../../utils/history";
+import { readLayer } from "../../utils/layers";
+import { getLocationPath } from "../../utils/location";
 import {
   readEphemeralKeys,
   removeEphemeralValues,
@@ -39,16 +38,15 @@ const useEphemeralStateHandler = (
     // oxlint-disable-next-line react/refs
     !sessionEntryKeysRef.current.has(location.key);
 
-  const ephemeralKeys = readEphemeralKeys(state);
   const staleEphemeralKeys = isRestoredEntry
-    ? Object.keys(ephemeralKeys).filter((key) => state[key] !== undefined)
+    ? readEphemeralKeys(state).filter((key) => state[key] !== undefined)
     : [];
   const hasStaleEphemeralState = staleEphemeralKeys.length > 0;
 
-  /* Earliest stamped index to return to, Infinity when none was stamped */
+  /* Earliest first push to return before, Infinity when none was stamped */
   const returnIndex = Math.min(
     ...staleEphemeralKeys.map(
-      (key) => readLocationIndex(state, ephemeralKeys[key]) ?? Infinity,
+      (key) => readLayer(state, key)?.start ?? Infinity,
     ),
   );
 
@@ -67,12 +65,12 @@ const useEphemeralStateHandler = (
 
     const canReturnToIndex = returnIndex < window.history.length;
 
-    if (!canReturnToIndex && window.history.state?.idx > 0) {
+    if (!canReturnToIndex && (readHistoryIndex() ?? 0) > 0) {
       navigate(-1);
       return;
     }
 
-    /* Return to the index like closing a toggle, or just drop the values */
+    /* Return before the first push like closing it, or just drop the values */
     navigate(getLocationPath(location), {
       replace: true,
       flushSync: true,

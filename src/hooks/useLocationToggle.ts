@@ -1,38 +1,43 @@
 import { useCallback, useMemo } from "react";
-import { type NavigateOptions } from "react-router";
+import { useLocationState } from "./useLocationState";
 import {
-  useLocationState,
+  useSetLocationState,
   type UseLocationStateOptions,
-} from "./useLocationState";
-import { useLocationIndex } from "./useLocationIndex";
+} from "./useSetLocationState";
+import type { SetLocationStateOptions } from "../utils/transaction";
 
-type UseLocationToggleReturn = [
-  boolean,
-  (status: boolean, options?: NavigateOptions) => void,
-];
+/** Setter of a location toggle */
+type SetLocationToggle = (
+  status: boolean,
+  options?: SetLocationStateOptions,
+) => void;
 
-/** Boolean location state (e.g dialogs); closing returns to the index */
+type UseLocationToggleReturn = [boolean, SetLocationToggle];
+
+/** A hook for setting a location toggle without reading it */
+const useSetLocationToggle = (
+  key: string,
+  options?: UseLocationStateOptions,
+): SetLocationToggle => {
+  const setOpen = useSetLocationState<boolean>(key, options);
+
+  /* Open sets true; close clears the value, closing what was opened on top */
+  return useCallback<SetLocationToggle>(
+    (status, options) => setOpen(status ? true : undefined, options),
+    [setOpen],
+  );
+};
+
+/** A hook for a boolean layer (e.g. a dialog); closing returns to before it opened */
 const useLocationToggle = (
   key: string,
-  indexKey?: string,
   options?: UseLocationStateOptions,
 ): UseLocationToggleReturn => {
-  const index = useLocationIndex(indexKey);
-  const [isOpen, setOpen] = useLocationState(key, false, {
-    ...options,
-    indexKey,
-  });
-
-  const toggle = useCallback(
-    (status: boolean, options?: NavigateOptions) => {
-      if (status) setOpen(true, options);
-      else setOpen(undefined, options, index);
-    },
-    [index, setOpen],
-  );
+  const [isOpen] = useLocationState(key, false, options);
+  const toggle = useSetLocationToggle(key, options);
 
   return useMemo(() => [isOpen, toggle], [isOpen, toggle]);
 };
 
-export { useLocationToggle };
-export type { UseLocationToggleReturn };
+export { useLocationToggle, useSetLocationToggle };
+export type { SetLocationToggle, UseLocationToggleReturn };

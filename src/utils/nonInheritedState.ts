@@ -1,5 +1,6 @@
 import { ROUTER_NON_INHERITED_KEYS, routerState } from "../constants";
 import { readEphemeralKeys } from "./ephemeralState";
+import { removeLayers } from "./layers";
 import type { LocationState } from "./location";
 
 /** Non-inherited (inherit: false) keys recorded in the state */
@@ -10,25 +11,27 @@ export const readNonInheritedKeys = (state: LocationState) =>
 export const isNonInheritedEntry = (state: LocationState) =>
   readNonInheritedKeys(state).length > 0;
 
-/** State with every non-inherited value, its ephemeral mark and the key list removed */
+/** State with every non-inherited value, its ephemeral mark, its stamp and the key list removed */
 export const removeNonInheritedValues = (state: LocationState) => {
   const nonInheritedKeys = readNonInheritedKeys(state);
   const inheritedState = { ...state };
-  const ephemeralKeys = { ...readEphemeralKeys(state) };
 
-  for (const key of nonInheritedKeys) {
-    delete inheritedState[key];
-    delete ephemeralKeys[key];
-  }
+  /* Nothing to remove */
+  if (!nonInheritedKeys.length) return inheritedState;
+
+  /* Drop the values and the key list */
+  for (const key of nonInheritedKeys) delete inheritedState[key];
   delete inheritedState[ROUTER_NON_INHERITED_KEYS];
+
+  /* The ephemeral keys that remain */
+  const ephemeralKeys = readEphemeralKeys(state).filter(
+    (key) => !nonInheritedKeys.includes(key),
+  );
 
   return {
     ...inheritedState,
-    ...(nonInheritedKeys.length
-      ? routerState.ephemeral(
-          Object.keys(ephemeralKeys).length ? ephemeralKeys : undefined,
-        )
-      : {}),
+    ...routerState.ephemeral(ephemeralKeys.length ? ephemeralKeys : undefined),
+    ...removeLayers(state, nonInheritedKeys),
   };
 };
 

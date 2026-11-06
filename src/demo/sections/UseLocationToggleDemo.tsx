@@ -1,5 +1,4 @@
 import { Link } from "../../components/Link";
-import { useLocationIndexUpdater } from "../../hooks/useLocationIndexUpdater";
 import { useLocationToggle } from "../../hooks/useLocationToggle";
 
 const IFRAME_DOC = `
@@ -15,8 +14,6 @@ const IFRAME_DOC = `
 
 /** Navigation inside the iframe adds history entries */
 const Sheet = ({ onClose }: { onClose: () => void }) => {
-  useLocationIndexUpdater("sheet");
-
   return (
     <div>
       <iframe srcDoc={IFRAME_DOC} title="Sheet frame" />
@@ -31,15 +28,13 @@ const UseLocationToggleDemo = () => {
   const [, setOpenedElsewhere] = useLocationToggle("modal");
   const [ephemeralOpened, setEphemeralOpened] = useLocationToggle(
     "ephemeral-modal",
-    undefined,
     { persist: false },
   );
-  const [sheetOpened, setSheetOpened] = useLocationToggle("sheet", "sheet", {
+  const [sheetOpened, setSheetOpened] = useLocationToggle("sheet", {
     persist: false,
   });
   const [nonInheritedOpened, setNonInheritedOpened] = useLocationToggle(
     "non-inherited-panel",
-    undefined,
     { inherit: false },
   );
   return (
@@ -88,7 +83,7 @@ const UseLocationToggleDemo = () => {
       </button>
 
       <button onClick={() => setSheetOpened(!sheetOpened)}>
-        Indexed sheet is: {sheetOpened ? "opened" : "closed"}
+        Sheet with a frame is: {sheetOpened ? "opened" : "closed"}
       </button>
 
       <button onClick={() => setNonInheritedOpened(!nonInheritedOpened)}>

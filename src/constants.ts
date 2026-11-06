@@ -7,12 +7,17 @@ export const ROUTER_FROM_POSITION = "__router_from_position";
 export const ROUTER_DESTROY_INDEX = "__router_destroy_index";
 /** Jump to the entry before this stamped index */
 export const ROUTER_NAVIGATE_INDEX = "__router_navigate_index";
-/** Prefix for history indexes stamped by useLocationIndexUpdater */
-export const ROUTER_INDEX_PREFIX = "__router_index_";
+/** The leave guard whose question is open */
+export const ROUTER_GUARD = "__router_guard";
+/** Where each value was pushed, stamped by the engine */
+export const ROUTER_LAYERS = "__router_layers";
 /** Keys set with persist: false, discarded after a reload */
 export const ROUTER_EPHEMERAL_KEYS = "__router_ephemeral_keys";
 /** Keys set with inherit: false, dropped from entries pushed by other keys */
 export const ROUTER_NON_INHERITED_KEYS = "__router_non_inherited_keys";
+
+/** Root element attribute holding the engine's status, set by RouterStatusProbe */
+export const ROUTER_STATUS_ATTRIBUTE = "data-pwa-router-correcting";
 
 // ==============================
 // DX-Friendly Helpers
@@ -33,10 +38,7 @@ export const navigateIndex = (value?: number) => ({
   [ROUTER_NAVIGATE_INDEX]: value,
 });
 
-/** Ephemeral state key → index key to return to (null to go back once) */
-export type EphemeralKeyMap = Record<string, string | null>;
-
-export const ephemeralKeys = (value?: EphemeralKeyMap) => ({
+export const ephemeralKeys = (value?: string[]) => ({
   [ROUTER_EPHEMERAL_KEYS]: value,
 });
 

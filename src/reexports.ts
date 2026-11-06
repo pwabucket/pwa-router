@@ -11,6 +11,7 @@ export {
   useHref,
   useInRouterContext,
   useMatch,
+  useNavigationType,
   useOutletContext,
   useParams,
   useResolvedPath,

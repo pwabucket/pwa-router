@@ -15,12 +15,21 @@ export default defineConfig({
   build: {
     lib: {
       name: "@pwabucket/pwa-router",
-      entry: path.resolve(import.meta.dirname, "src/index.ts"),
+      entry: {
+        index: path.resolve(import.meta.dirname, "src/index.ts"),
+        testing: path.resolve(import.meta.dirname, "src/testing/index.ts"),
+      },
       formats: ["es", "cjs"],
-      fileName: (format) => (format === "es" ? "index.js" : "index.cjs"),
+      fileName: (format, entryName) =>
+        `${entryName}.${format === "es" ? "js" : "cjs"}`,
     },
     rollupOptions: {
-      external: ["react", "react-router", "react/jsx-runtime"],
+      external: [
+        "react",
+        "react-router",
+        "react/jsx-runtime",
+        "@playwright/test",
+      ],
     },
   },
 });
