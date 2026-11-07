@@ -33,10 +33,13 @@ const readHistory = (page: Page): Promise<HistorySnapshot> =>
 const settle = async (page: Page) => {
   /* The number of identical idle reads that count as settled */
   const requiredStableReads = 3;
+  /* The count of stable reads so far, and the last read */
   let stableReads = 0;
   let previous = "";
 
+  /* Read the history until it settles */
   while (stableReads < requiredStableReads) {
+    /* Wait a moment, then read the history */
     await page.waitForTimeout(40);
     const snapshot = await readHistory(page);
     const serialized = JSON.stringify(snapshot);
@@ -47,6 +50,7 @@ const settle = async (page: Page) => {
     previous = serialized;
   }
 
+  /* The settled snapshot */
   return readHistory(page);
 };
 

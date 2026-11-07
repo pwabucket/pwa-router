@@ -17,6 +17,7 @@ export {
   useResolvedPath,
 } from "react-router";
 
+/* Their types */
 export type {
   BrowserRouterProps,
   LinkProps,

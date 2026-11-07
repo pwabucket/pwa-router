@@ -11,75 +11,75 @@ export {
 } from "./constants";
 
 /* The router: provider, routes, location and navigation */
-export { PWARouter } from "./router/PWARouter";
-export type { PWARouterProps } from "./router/PWARouter";
-export { PWARoutingProvider } from "./router/PWARoutingProvider";
-export type { PWARoutingProviderProps } from "./router/PWARoutingProvider";
-export type { PWARoutingContextValue } from "./router/PWARoutingContext";
-export { usePWARouting } from "./router/usePWARouting";
-export { Routes } from "./router/Routes";
-export { RouterStatusProbe } from "./router/RouterStatusProbe";
-export { useLocation } from "./router/useLocation";
-export { useNavigate } from "./router/useNavigate";
+export { PWARouter } from "./components/router/PWARouter";
+export type { PWARouterProps } from "./components/router/PWARouter";
+export { PWARoutingProvider } from "./contexts/router/PWARoutingProvider";
+export type { PWARoutingProviderProps } from "./contexts/router/PWARoutingProvider";
+export type { PWARoutingContextValue } from "./contexts/router/PWARoutingContext";
+export { usePWARouting } from "./hooks/router/usePWARouting";
+export { Routes } from "./components/router/Routes";
+export { RouterStatusProbe } from "./components/router/RouterStatusProbe";
+export { useLocation } from "./hooks/router/useLocation";
+export { useNavigate } from "./hooks/router/useNavigate";
 export type {
   PWANavigateFunction,
   PWANavigateOptions,
-} from "./router/useNavigate";
-export { useNavigateBack } from "./router/useNavigateBack";
-export { useSearchParams } from "./router/useSearchParams";
+} from "./hooks/router/useNavigate";
+export { useNavigateBack } from "./hooks/router/useNavigateBack";
+export { useSearchParams } from "./hooks/router/useSearchParams";
 
 /* Links */
-export { Link } from "./links/Link";
-export type { PWALinkProps } from "./links/Link";
-export { NavLink } from "./links/NavLink";
-export type { PWANavLinkProps } from "./links/NavLink";
-export { Navigate } from "./links/Navigate";
-export type { PWANavigateProps } from "./links/Navigate";
+export { Link } from "./components/links/Link";
+export type { PWALinkProps } from "./components/links/Link";
+export { NavLink } from "./components/links/NavLink";
+export type { PWANavLinkProps } from "./components/links/NavLink";
+export { Navigate } from "./components/links/Navigate";
+export type { PWANavigateProps } from "./components/links/Navigate";
 
 /* Layers: location state values and the hooks built on them */
-export { useLocationState } from "./layers/useLocationState";
-export type { UseLocationStateReturn } from "./layers/useLocationState";
-export { useSetLocationState } from "./layers/useSetLocationState";
+export { useLocationState } from "./hooks/layers/useLocationState";
+export type { UseLocationStateReturn } from "./hooks/layers/useLocationState";
+export { useSetLocationState } from "./hooks/layers/useSetLocationState";
 export type {
   SetLocationState,
   SetLocationStateOptions,
   UseLocationStateOptions,
-} from "./layers/useSetLocationState";
+} from "./hooks/layers/useSetLocationState";
 export {
   useLocationToggle,
   useSetLocationToggle,
-} from "./layers/useLocationToggle";
+} from "./hooks/layers/useLocationToggle";
 export type {
   SetLocationToggle,
   UseLocationToggleReturn,
-} from "./layers/useLocationToggle";
-export { useLocationTab } from "./layers/useLocationTab";
+} from "./hooks/layers/useLocationToggle";
+export { useLocationTab } from "./hooks/layers/useLocationTab";
 export type {
   SelectLocationTab,
   UseLocationTabReturn,
-} from "./layers/useLocationTab";
-export { useLocationPopup } from "./layers/useLocationPopup";
-export type { LocationPopupProps } from "./layers/useLocationPopup";
-export { LocationStateDefaultsProvider } from "./layers/LocationStateDefaultsProvider";
-export type { LocationStateDefaultsProviderProps } from "./layers/LocationStateDefaultsProvider";
+} from "./hooks/layers/useLocationTab";
+export { useLocationPopup } from "./hooks/layers/useLocationPopup";
+export type { LocationPopupProps } from "./hooks/layers/useLocationPopup";
+export { LocationStateDefaultsProvider } from "./contexts/layers/LocationStateDefaultsProvider";
+export type { LocationStateDefaultsProviderProps } from "./contexts/layers/LocationStateDefaultsProvider";
 
 /* Leave guards */
-export { useLeaveGuard } from "./guards/useLeaveGuard";
+export { useLeaveGuard } from "./hooks/guards/useLeaveGuard";
 export type {
   LeaveGuardControls,
   UseLeaveGuardOptions,
-} from "./guards/useLeaveGuard";
+} from "./hooks/guards/useLeaveGuard";
 
 /* Tabbed areas */
-export { TabsRoot } from "./tabs/TabsRoot";
-export type { TabsRootProps } from "./tabs/TabsRoot";
-export { TabView } from "./tabs/TabView";
-export type { TabViewProps } from "./tabs/TabView";
-export { useTabs } from "./tabs/useTabs";
-export type { TabsControls } from "./tabs/useTabs";
-export { useTabView } from "./tabs/useTabView";
-export type { TabViewStatus } from "./tabs/TabViewStatusContext";
-export type { TabDefinition } from "./tabs/core/tabs";
+export { TabsRoot } from "./components/tabs/TabsRoot";
+export type { TabsRootProps } from "./components/tabs/TabsRoot";
+export { TabView } from "./components/tabs/TabView";
+export type { TabViewProps } from "./components/tabs/TabView";
+export { useTabs } from "./hooks/tabs/useTabs";
+export type { TabsControls } from "./hooks/tabs/useTabs";
+export { useTabView } from "./hooks/tabs/useTabView";
+export type { TabViewStatus } from "./contexts/tabs/TabViewStatusContext";
+export type { TabDefinition } from "./lib/tabs/core/tabs";
 
 /* React Router pieces that need no engine awareness */
 export * from "./reexports";
