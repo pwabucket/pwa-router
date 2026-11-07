@@ -51,27 +51,33 @@ const useStateMarkersHandler = (
       const isReplace = navigationType === "REPLACE";
       showLocation((shown) => shown ?? target);
 
-      driver.run(async (moves) => {
-        await moves.go(fromPosition);
-        await (isReplace ? moves.replace : moves.push)(path, target.state);
-        showLocation((shown) => (shown === target ? null : shown));
-      });
+      driver.run(
+        [
+          () => ({ kind: "go", delta: fromPosition }),
+          () => ({
+            kind: isReplace ? "replace" : "push",
+            to: path,
+            state: target.state,
+          }),
+        ],
+        () => showLocation((shown) => (shown === target ? null : shown)),
+      );
       return;
     }
 
     /* Destroy: reset the pointer, then land before the index */
     if (destroyIndex !== undefined) {
-      driver.run(async (moves) => {
-        await moves.push(path, target.state);
-        await moves.go(destroyIndex - window.history.length - 1);
-      });
+      driver.run([
+        () => ({ kind: "push", to: path, state: target.state }),
+        () => ({ kind: "go", delta: destroyIndex - window.history.length - 1 }),
+      ]);
       return;
     }
 
     /* Navigate: land before the index */
-    driver.run(async (moves) => {
-      await moves.go(navigateIndex! - window.history.length - 1);
-    });
+    driver.run([
+      () => ({ kind: "go", delta: navigateIndex! - window.history.length - 1 }),
+    ]);
   }, [
     fromPosition,
     destroyIndex,

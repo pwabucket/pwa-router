@@ -1,6 +1,6 @@
 import { NavigationType } from "react-router";
 import { describe, expect, it } from "vitest";
-import { at, back, fakeMoves } from "../../engine/tests/moves";
+import { at, back } from "../../engine/tests/moves";
 import { createGuardDecider } from "../guardDecider";
 import { LeaveGuardRegistry } from "../LeaveGuardRegistry";
 
@@ -13,7 +13,7 @@ describe("guard decider", () => {
     expect(decision?.undo).toBe("traverse");
 
     decision?.onUndo?.();
-    decision?.onLanded(fakeMoves());
+    decision?.onLanded?.();
     expect(guards.takePendingQuestion()).toBe("g");
     expect(guards.takeAttempt()).toEqual({
       kind: "pop",

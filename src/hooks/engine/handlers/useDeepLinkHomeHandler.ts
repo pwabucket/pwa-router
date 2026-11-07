@@ -7,7 +7,7 @@ import { planBackfill } from "../../../lib/tabs/core/planBackfill";
 import { findArea, type EntryRecord } from "../../../lib/engine/core/record";
 import { createStepId } from "../../../lib/engine/core/stepIds";
 import { readPagePosition, type TabsConfig } from "../../../lib/tabs/core/tabs";
-import type { EngineWork } from "../../../lib/engine/EngineWork";
+import type { HistoryDriver } from "../../../lib/engine/driver/HistoryDriver";
 
 /** Events that give the page a user activation */
 const ACTIVATION_EVENTS = ["click", "keydown"] as const;
@@ -63,7 +63,7 @@ const useDeepLinkHomeHandler = (
   location: Location,
   isCorrecting: boolean,
   tabs: DeepLinkTabs,
-  work: EngineWork,
+  driver: HistoryDriver,
 ) => {
   /* The router, and whether a tabbed area is registered */
   const navigate = useNavigate();
@@ -93,7 +93,7 @@ const useDeepLinkHomeHandler = (
       if (!entries) return;
 
       /* Work queued by this activation waits for the new entries */
-      work.send(location.key);
+      driver.markSent(location.key);
 
       /* The first entry becomes the lowest page; the rest are pushed */
       const [first, ...rest] = entries;
@@ -115,7 +115,7 @@ const useDeepLinkHomeHandler = (
 
     /* Stop listening on cleanup */
     return removeListeners;
-  }, [homePath, hasTabs, work]);
+  }, [homePath, hasTabs, driver]);
 };
 
 export { useDeepLinkHomeHandler };

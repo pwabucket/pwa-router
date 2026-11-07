@@ -2,7 +2,6 @@ import { useLayoutEffect, useState } from "react";
 import { useNavigate, type Location } from "react-router";
 import type { LeaveGuardRegistry } from "../../lib/guards/LeaveGuardRegistry";
 import type { TabsOp } from "../../lib/tabs/core/planTabsOp";
-import type { EngineWork } from "../../lib/engine/EngineWork";
 import type { HistoryDriver } from "../../lib/engine/driver/HistoryDriver";
 import {
   LocationStateTransactions,
@@ -20,7 +19,6 @@ const useLocationStateTransactions = (
   isCorrecting: boolean,
   guards: LeaveGuardRegistry,
   tabs: TabsBinding,
-  work: EngineWork,
   showLocation: ShowLocation,
   driver: HistoryDriver,
 ) => {
@@ -38,7 +36,6 @@ const useLocationStateTransactions = (
         setPendingTabsOp,
         showLocation,
         guards,
-        work,
         driver,
       }),
   );

@@ -84,10 +84,14 @@ const useEphemeralStateHandler = (
 
     /* Return before the first push like closing it: reset the pointer, then jump */
     if (canReturnToIndex) {
-      driver.run(async (moves) => {
-        await moves.push(getLocationPath(location), sanitizedLocation.state);
-        await moves.go(returnIndex - window.history.length - 1);
-      });
+      driver.run([
+        () => ({
+          kind: "push",
+          to: getLocationPath(location),
+          state: sanitizedLocation.state,
+        }),
+        () => ({ kind: "go", delta: returnIndex - window.history.length - 1 }),
+      ]);
       return;
     }
 

@@ -5,29 +5,29 @@ import type { CloseTarget } from "../core/steps";
 import { getLocationPath } from "../core/locationPath";
 import type { TabsWrite } from "../../tabs/core/planTabsOp";
 import { popToStep } from "../../tabs/core/restoreSteps";
-import type { HistoryDriver, Moves } from "../driver/HistoryDriver";
+import type { HistoryDriver, Step } from "../driver/HistoryDriver";
 
-/** The moves back to before a position: the pointer reset first when entries sit above it; null goes back one */
-const landWith = async (
-  moves: Moves,
-  landing: number | null,
-  location: Location,
-) => {
+/** The steps back to before a position: the pointer reset first when entries sit above it; null goes back one */
+const landingSteps = (landing: number | null, location: Location): Step[] => {
   /* Reset the pointer: the current entry becomes the last, so the length is exact; then jump */
   if (landing !== null && landing < window.history.length) {
-    await moves.push(getLocationPath(location), location.state);
-    await moves.go(landing - window.history.length - 1);
-    return;
+    return [
+      () => ({
+        kind: "push",
+        to: getLocationPath(location),
+        state: location.state,
+      }),
+      () => ({ kind: "go", delta: landing - window.history.length - 1 }),
+    ];
   }
 
   /* Go back one entry */
   if (landing !== null || location.key !== "default") {
-    await moves.go(-1);
-    return;
+    return [() => ({ kind: "go", delta: -1 })];
   }
 
   /* Landed here directly, nothing to go back to */
-  await moves.replace("/", undefined);
+  return [() => ({ kind: "replace", to: "/", state: undefined })];
 };
 
 /** Goes back to before a position, skipping entries made since (iframes); null goes back one */
@@ -39,7 +39,7 @@ const writeLanding = (
 ) => {
   if (landing !== null && landing < window.history.length) {
     /* A jump past other entries runs as the driver's back intent */
-    driver.run((moves) => landWith(moves, landing, location));
+    driver.run(landingSteps(landing, location));
   } else if (landing !== null || location.key !== "default") {
     /* Go back one entry */
     navigate(-1);
@@ -56,10 +56,13 @@ const writeLandingThenEntry = (
   location: Location,
   write: TabsWrite,
 ) => {
-  driver.run(async (moves) => {
-    await landWith(moves, landing, location);
-    await moves.write((navigate) => writeTabsEntry(navigate, write));
-  });
+  driver.run([
+    ...landingSteps(landing, location),
+    () => ({
+      kind: "write",
+      send: (navigate) => writeTabsEntry(navigate, write),
+    }),
+  ]);
 };
 
 /** Closes values: lands before their push, or goes back one when unrecorded (virtual pops are written by the transactions) */

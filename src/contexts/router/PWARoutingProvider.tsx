@@ -24,8 +24,6 @@ import { TabsOperationsContext } from "../tabs/TabsOperationsContext";
 import { TabsEngineContext } from "../tabs/TabsEngineContext";
 import { LeaveGuardRegistry } from "../../lib/guards/LeaveGuardRegistry";
 import { applyOverlay } from "../../lib/engine/transactions/overlay";
-import { EngineWork } from "../../lib/engine/EngineWork";
-import { useCorrectionLock } from "../../hooks/engine/useCorrectionLock";
 import { useDeepLinkHomeHandler } from "../../hooks/engine/handlers/useDeepLinkHomeHandler";
 import { useEphemeralStateHandler } from "../../hooks/engine/handlers/useEphemeralStateHandler";
 import { createGuardDecider } from "../../lib/guards/guardDecider";
@@ -47,21 +45,26 @@ const PWARoutingProvider = ({
   children,
   deepLinkHome,
 }: PWARoutingProviderProps) => {
-  /* The location, the correction lock, the guards and the engine's work */
+  /* The location and the guards */
   const location = useLocation();
-  const tryLock = useCorrectionLock(location.key);
   const [guards] = useState(() => new LeaveGuardRegistry());
-  const [work] = useState(() => new EngineWork());
 
-  /* The driver running corrections as moves, rendering again when it starts or stops */
+  /* The driver: the engine's movement of the history, rendering again when it stops without a move */
   const routerNavigate = useNavigate();
   const [, renderDriverChange] = useReducer((count: number) => count + 1, 0);
   const [driver] = useState(() => new HistoryDriver(renderDriverChange));
 
-  /* Every location on screen reaches the driver, landing its waiting move */
+  /* Every location on screen reaches the driver first: it unlocks a new entry and lands a waiting move */
   useLayoutEffect(() => {
     driver.land(location, routerNavigate);
   });
+
+  /* The entry's single correction; a new function per entry, so the handlers' effects run again */
+  const tryLock = useCallback(
+    () => driver.tryLock(),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [driver, location.key],
+  );
 
   /* The tab areas whose TabsRoot is mounted right now */
   const [registeredAreas] = useState(() => new Set<string>());
@@ -108,7 +111,6 @@ const PWARoutingProvider = ({
   const { settledLocation, frozenLocation, isReverting } = useMoveWatcher(
     location,
     deciders,
-    work,
     hasCorrection,
     tryLockAfterEphemeralCleanup,
     driver,
@@ -122,7 +124,7 @@ const PWARoutingProvider = ({
   /* Every entry of a tabbed area carries its tabs data */
   const tabsHandler = useTabsHandler(
     location,
-    work,
+    driver,
     hasCorrection || isReverting,
     tryLockAfterEphemeralCleanup,
     registeredAreas,
@@ -137,7 +139,6 @@ const PWARoutingProvider = ({
       isCorrecting,
       guards,
       tabsHandler.engine,
-      work,
       showLocation,
       driver,
     );
@@ -148,7 +149,7 @@ const PWARoutingProvider = ({
     location,
     isCorrecting,
     tabsHandler.engine,
-    work,
+    driver,
   );
 
   /* The tabs engine for TabsRoot */

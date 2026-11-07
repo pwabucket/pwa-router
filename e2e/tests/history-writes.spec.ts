@@ -3,11 +3,12 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { goBack, press, settle, visit } from "../../src/testing";
 
-/** History writes made by one flow */
+/** History writes made by one flow, and the app's commits meanwhile */
 interface HistoryWrites {
   push: number;
   replace: number;
   go: number;
+  commits: number;
 }
 
 /** Rewrite the baselines instead of comparing (UPDATE_BASELINES=1) */
@@ -50,22 +51,27 @@ const countWrites = (page: Page) =>
     Object.assign(window, { historyWrites: counts });
   });
 
+/** The counters the page keeps: history writes, and the app's commits */
+interface PageCounters {
+  historyWrites: Omit<HistoryWrites, "commits">;
+  appCommits?: number;
+}
+
 /** Resets the counts before the measured part of a flow */
 const resetWrites = (page: Page) =>
   page.evaluate(() => {
-    const counts = (window as unknown as { historyWrites: HistoryWrites })
-      .historyWrites;
+    const counters = window as unknown as PageCounters;
+    const counts = counters.historyWrites;
     counts.push = counts.replace = counts.go = 0;
+    counters.appCommits = 0;
   });
 
 /** Reads the counts once the engine has settled */
 const readWrites = async (page: Page): Promise<HistoryWrites> => {
   await settle(page);
   return page.evaluate(() => {
-    const { historyWrites } = window as unknown as {
-      historyWrites: HistoryWrites;
-    };
-    return { ...historyWrites };
+    const { historyWrites, appCommits } = window as unknown as PageCounters;
+    return { ...historyWrites, commits: appCommits ?? 0 };
   });
 };
 
@@ -167,11 +173,15 @@ test.describe("history writes", () => {
       return;
     }
 
-    /* Every flow writes no more than its baseline */
+    /* Every flow writes exactly its baseline, and commits the app no more often */
     expect(existsSync(file), `missing baseline ${file}`).toBe(true);
     const baseline = JSON.parse(readFileSync(file, "utf8"));
-    for (const [name, writes] of Object.entries(measured)) {
-      expect.soft(writes, name).toEqual(baseline[name]);
+    for (const [name, { commits, ...writes }] of Object.entries(measured)) {
+      const { commits: baselineCommits, ...baselineWrites } = baseline[name];
+      expect.soft(writes, name).toEqual(baselineWrites);
+      expect
+        .soft(commits, `${name}: commits`)
+        .toBeLessThanOrEqual(baselineCommits);
     }
   });
 });

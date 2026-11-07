@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ROUTER_RECORD } from "../../../constants";
 import { createArea, createRecord } from "../../engine/core/record";
-import { at, back, fakeMoves } from "../../engine/tests/moves";
+import { at, back } from "../../engine/tests/moves";
 import { createVirtualStepDecider } from "../virtualStepDecider";
 
 /** The decider with the test's area mounted */
@@ -40,12 +40,11 @@ describe("virtual step decider", () => {
     const decision = virtualStepDecider(back(restored, at("/")));
     expect(decision?.undo).toBe("traverse");
 
-    const moves = fakeMoves();
-    decision?.onLanded(moves);
-    expect(moves.replace).toHaveBeenCalledWith(
-      { pathname: "/search", search: "", hash: "" },
-      expect.anything(),
-    );
+    expect(decision?.landedMove?.()).toEqual({
+      kind: "replace",
+      to: { pathname: "/search", search: "", hash: "" },
+      state: expect.anything(),
+    });
   });
 
   it("lets a back through when the area's TabsRoot isn't mounted", () => {

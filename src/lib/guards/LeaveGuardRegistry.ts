@@ -81,59 +81,59 @@ const questionChange = (guardId?: string): ValueChange => ({
 /** The leave guards of one router and the move they blocked */
 class LeaveGuardRegistry {
   /** The registered guards, by id */
-  private guards = new Map<string, LeaveGuard>();
+  #guards = new Map<string, LeaveGuard>();
 
   /** The blocked move waiting for an answer */
-  private attempt: BlockedAttempt | null = null;
+  #attempt: BlockedAttempt | null = null;
 
   /** A guard whose question opens once the history is restored */
-  private pendingQuestion: string | null = null;
+  #pendingQuestion: string | null = null;
 
   /** Records a blocked move */
   block(attempt: BlockedAttempt) {
-    this.attempt = attempt;
+    this.#attempt = attempt;
   }
 
   /** Takes the blocked move, leaving none */
   takeAttempt() {
-    const attempt = this.attempt;
-    this.attempt = null;
+    const attempt = this.#attempt;
+    this.#attempt = null;
     return attempt;
   }
 
   /** Asks for a guard's question once the history is restored */
   requestQuestion(guardId: string) {
-    this.pendingQuestion = guardId;
+    this.#pendingQuestion = guardId;
   }
 
   /** Takes the guard whose question should open, leaving none */
   takePendingQuestion() {
-    const guardId = this.pendingQuestion;
-    this.pendingQuestion = null;
+    const guardId = this.#pendingQuestion;
+    this.#pendingQuestion = null;
     return guardId;
   }
 
   /** Registers or updates a guard */
   set(id: string, guard: Omit<LeaveGuard, "isLeaving">) {
     /* Keep the guard's leaving status across updates */
-    const isLeaving = this.guards.get(id)?.isLeaving ?? false;
-    this.guards.set(id, { ...guard, isLeaving });
+    const isLeaving = this.#guards.get(id)?.isLeaving ?? false;
+    this.#guards.set(id, { ...guard, isLeaving });
   }
 
   /** Removes a guard */
   delete(id: string) {
-    this.guards.delete(id);
+    this.#guards.delete(id);
   }
 
   /** Lets a guard's move through; it rests until the move lands */
   markLeaving(id: string) {
-    const guard = this.guards.get(id);
+    const guard = this.#guards.get(id);
     if (guard) guard.isLeaving = true;
   }
 
   /** Wakes guards whose move has landed outside their scope */
   settle(location: Location) {
-    for (const guard of this.guards.values()) {
+    for (const guard of this.#guards.values()) {
       if (guard.isLeaving && !isInside(guard, location)) {
         guard.isLeaving = false;
       }
@@ -142,7 +142,7 @@ class LeaveGuardRegistry {
 
   /** The first active guard that a move between two locations leaves */
   findLeavingMove(from: Location, to: Partial<Location>) {
-    for (const [id, guard] of this.guards) {
+    for (const [id, guard] of this.#guards) {
       if (isActive(guard) && isInside(guard, from) && !isInside(guard, to)) {
         return id;
       }
@@ -152,7 +152,7 @@ class LeaveGuardRegistry {
 
   /** The first active guard, whatever its scope */
   findAnyActive() {
-    for (const [id, guard] of this.guards) {
+    for (const [id, guard] of this.#guards) {
       if (isActive(guard)) return id;
     }
     return undefined;
@@ -167,7 +167,7 @@ class LeaveGuardRegistry {
 
   /** The first active layer guard that a transaction plan leaves */
   findLeavingPlan(entry: PlanEntry, plan: ChangesPlan) {
-    for (const [id, guard] of this.guards) {
+    for (const [id, guard] of this.#guards) {
       if (!guard.key || !isActive(guard)) continue;
       if (planLeavesLayer(entry, plan, guard.key)) return id;
     }

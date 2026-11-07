@@ -35,8 +35,7 @@ Folders are named by kind first, then by feature (`router`, `links`, `layers`, `
 | Planners (pure) | `src/lib/engine/core/planChanges.ts`, `src/lib/tabs/core/planTabsOp.ts` (plus `adoptAreas`, `settleMemory`, `restoreSteps`, `planBackfill` beside it) | Current record + requests → the operations to run |
 | Intent queue | `src/lib/engine/transactions/IntentQueue.ts` | Requests in order: a tab operation, then all value changes as one transaction |
 | Transactions | `src/lib/engine/transactions/LocationStateTransactions.ts` (wired by `src/hooks/engine/useLocationStateTransactions.ts`) | Takes intents, plans them, checks guards, sends them one landing at a time |
-| History driver | `src/lib/engine/driver/HistoryDriver.ts` | Runs every correction that contains a `go` as one intent: its moves one at a time, each waiting for its landing. Plain pushes and replaces are written directly |
-| Busy state | `src/lib/engine/EngineWork.ts` | Work sent and not landed, and operations still running |
+| History driver | `src/lib/engine/driver/HistoryDriver.ts` | The engine's movement of the history, in one place: it runs every correction that contains a `go` as an intent (a list of steps, each building its move once the step before has landed; the engine counts as correcting until the last move is sent), tracks the engine's direct writes until they land and the tab operation running, and holds the lock that lets one correction act per entry |
 | Watcher | `src/hooks/engine/useMoveWatcher.ts` | Sees every user move and asks the deciders whether to undo it; the undo runs as one driver intent, keeping the screen on show |
 | Deciders | `src/lib/engine/moveDeciders.ts` (the contract), `src/lib/guards/guardDecider.ts`, `src/lib/tabs/virtualStepDecider.ts` | Feature rules for undoing moves: guards ask first, then tabs show virtual steps |
 | Tabs handler | `src/hooks/tabs/useTabsHandler.ts` | Registers tab areas, records new pages, keeps each area's saved steps |
@@ -51,5 +50,5 @@ Folders are named by kind first, then by feature (`router`, `links`, `layers`, `
 
 ## Checks that guard it
 - **Unit tests** for the pure core and the engine classes: `pnpm test:unit`.
-- **End-to-end tests** on React Router 7 and 8: `pnpm test:e2e`. These include history-write counts per main flow, compared with `e2e/baselines/`.
+- **End-to-end tests** on React Router 7 and 8: `pnpm test:e2e`. For each main flow they count the history writes, which must match `e2e/baselines/` exactly, and the app's React commits, which may never exceed it. `UPDATE_BASELINES=1` rewrites them; a change that raises either count needs a reason.
 - **The public export list**, compared with `baselines/public-api.txt`: `pnpm api:check`.

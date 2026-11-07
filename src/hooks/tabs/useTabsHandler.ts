@@ -11,12 +11,12 @@ import { createStepId } from "../../lib/engine/core/stepIds";
 import type { PreviousEntry, TabsConfig } from "../../lib/tabs/core/tabs";
 import { readHistoryIndex } from "../../lib/engine/history/historyIndex";
 import { getLocationPath } from "../../lib/engine/core/locationPath";
-import type { EngineWork } from "../../lib/engine/EngineWork";
+import type { HistoryDriver } from "../../lib/engine/driver/HistoryDriver";
 
 /** A hook that keeps every entry carrying the records of its live tabbed areas */
 const useTabsHandler = (
   location: Location,
-  work: EngineWork,
+  driver: HistoryDriver,
   isCorrecting: boolean,
   tryLock: () => boolean,
   registeredAreas: Set<string>,
@@ -35,7 +35,7 @@ const useTabsHandler = (
   );
 
   /* Whether the entry's record can be written now */
-  const canWrite = configs.length > 0 && !isCorrecting && !work.isOperating;
+  const canWrite = configs.length > 0 && !isCorrecting && !driver.isOperating;
 
   /* A new entry missing live areas takes them (a page push, a replace, a new area) */
   const adoptedRecord = useMemo(

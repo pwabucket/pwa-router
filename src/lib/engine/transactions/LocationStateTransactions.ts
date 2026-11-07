@@ -16,7 +16,6 @@ import {
   type TabsConfig,
   type TabsMemory,
 } from "../../tabs/core/tabs";
-import type { EngineWork } from "../EngineWork";
 import {
   writeChanges,
   writeClose,
@@ -58,7 +57,7 @@ interface TransactionsInputs {
   tabs: TabsBinding;
 }
 
-/** What the transactions work with: where they publish what screens show, the guards and the work */
+/** What the transactions work with: where they publish what screens show, the guards and the driver */
 interface TransactionsDeps {
   /** The values on their way to the history */
   setOverlay: (overlay: LocationStateOverlay) => void;
@@ -66,8 +65,7 @@ interface TransactionsDeps {
   setPendingTabsOp: (op: TabsOp | null) => void;
   showLocation: ShowLocation;
   guards: LeaveGuardRegistry;
-  work: EngineWork;
-  /** Runs the closes that land below the current entry */
+  /** The engine's movement of the history: intents, direct writes in flight and tab operations */
   driver: HistoryDriver;
 }
 
@@ -124,14 +122,14 @@ class LocationStateTransactions {
   /** Lands the work in flight once a new location settles, then sends what's next */
   settle() {
     /* Wait until the work in flight has landed on the new location */
-    const { work, guards } = this.#deps;
+    const { driver, guards } = this.#deps;
     const { location, isCorrecting } = this.#inputs;
     if (isCorrecting) return;
-    if (work.isSent && !work.hasLanded(location.key)) return;
+    if (driver.isSent && !driver.hasLanded(location.key)) return;
 
     /* Land the work in flight */
     this.#sentValues = null;
-    work.land();
+    driver.markLanded();
 
     /* Ask the question of a guard whose blocked move was undone */
     const questionGuardId = guards.takePendingQuestion();
@@ -145,8 +143,8 @@ class LocationStateTransactions {
     this.#flush();
 
     /* A tab operation is done once nothing of it is left */
-    const isTabsOpDone = !work.isSent && !this.#intents.hasTabsWork;
-    if (isTabsOpDone && work.isOperating) this.#endTabsOp();
+    const isTabsOpDone = !driver.isSent && !this.#intents.hasTabsWork;
+    if (isTabsOpDone && driver.isOperating) this.#endTabsOp();
   }
 
   /** Flushes once at the end of the tick */
@@ -181,7 +179,7 @@ class LocationStateTransactions {
   #send() {
     /* Wait while work is in flight or a correction runs */
     const { location, isCorrecting } = this.#inputs;
-    if (this.#deps.work.isSent || isCorrecting) return;
+    if (this.#deps.driver.isSent || isCorrecting) return;
 
     /* Take the queued intents in order */
     for (
@@ -202,12 +200,12 @@ class LocationStateTransactions {
   /** Marks work as sent from the given entry, with the values it carries */
   #markSent(values: Map<string, unknown>, location: Location) {
     this.#sentValues = values;
-    this.#deps.work.send(location.key);
+    this.#deps.driver.markSent(location.key);
   }
 
   /** Ends the running tab operation and releases the location on show */
   #endTabsOp() {
-    this.#deps.work.setOperating(false);
+    this.#deps.driver.setOperating(false);
     this.#deps.setPendingTabsOp(null);
     this.#deps.showLocation(() => null);
   }
@@ -216,7 +214,7 @@ class LocationStateTransactions {
   #runTabsPlan(plan: TabsPlan, location: Location) {
     /* Mark the tab operation as running and sent */
     const { navigate } = this.#inputs;
-    this.#deps.work.setOperating(true);
+    this.#deps.driver.setOperating(true);
     this.#markSent(new Map(), location);
 
     /* Close then write, close alone, or write alone */

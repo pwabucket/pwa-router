@@ -4,7 +4,6 @@ import { readHistoryIndex } from "../../lib/engine/history/historyIndex";
 import { getLocationPath } from "../../lib/engine/core/locationPath";
 import type { MoveDecider } from "../../lib/engine/moveDeciders";
 import type { HistoryDriver } from "../../lib/engine/driver/HistoryDriver";
-import type { EngineWork } from "../../lib/engine/EngineWork";
 
 /** A location the history settled on, with its history index */
 interface SettledLocation {
@@ -16,7 +15,6 @@ interface SettledLocation {
 const useMoveWatcher = (
   location: Location,
   deciders: MoveDecider[],
-  work: EngineWork,
   isCorrecting: boolean,
   tryLock: () => boolean,
   driver: HistoryDriver,
@@ -34,7 +32,7 @@ const useMoveWatcher = (
   const delta = index - (settled.index ?? 0);
   const isFinishedMove =
     location.key !== settled.location.key && !undoneFrom && !isCorrecting;
-  const isUserMove = isFinishedMove && !work.isBusy;
+  const isUserMove = isFinishedMove && !driver.isBusy;
 
   /* The first decider that undoes the move decides */
   const decision = useMemo(() => {
@@ -76,25 +74,31 @@ const useMoveWatcher = (
     // oxlint-disable-next-line react/set-state-in-effect
     setUndoneFrom(shown);
 
-    driver.run(async (moves) => {
-      try {
-        /* Tell the decision the undo starts */
-        decision.onUndo?.();
+    /* Tell the decision the undo starts */
+    decision.onUndo?.();
 
+    driver.run(
+      [
         /* Go back by the move's steps, or put the settled location back in place */
-        if (decision.undo === "traverse") {
-          await moves.go(-delta);
-        } else {
-          await moves.replace(getLocationPath(shown), shown.state);
-        }
+        () =>
+          decision.undo === "traverse"
+            ? { kind: "go", delta: -delta }
+            : {
+                kind: "replace",
+                to: getLocationPath(shown),
+                state: shown.state,
+              },
 
-        /* Finish the decision */
-        await decision.onLanded(moves);
-      } finally {
-        /* Release the screen, whatever happened */
+        /* The decision's own move once landed */
+        ...(decision.landedMove ? [decision.landedMove] : []),
+      ],
+
+      /* Once the last move is on its way: finish the decision and release the screen */
+      () => {
+        decision.onLanded?.();
         setUndoneFrom(null);
-      }
-    });
+      },
+    );
   }, [decision, delta, settled, tryLock, driver]);
 
   /* The settled location, and the one kept on show while undoing */
