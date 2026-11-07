@@ -80,8 +80,7 @@ const createVirtualStepDecider =
       undo: "traverse",
 
       /* Show the step in the restored entry */
-      onLanded: (navigate) =>
-        navigate(restored.to, { replace: true, state: restored.state }),
+      onLanded: (moves) => moves.replace(restored.to, restored.state),
     };
   };
 

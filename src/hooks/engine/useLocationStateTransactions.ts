@@ -3,6 +3,7 @@ import { useNavigate, type Location } from "react-router";
 import type { LeaveGuardRegistry } from "../../lib/guards/LeaveGuardRegistry";
 import type { TabsOp } from "../../lib/tabs/core/planTabsOp";
 import type { EngineWork } from "../../lib/engine/EngineWork";
+import type { HistoryDriver } from "../../lib/engine/driver/HistoryDriver";
 import {
   LocationStateTransactions,
   type LocationStateOverlay,
@@ -21,6 +22,7 @@ const useLocationStateTransactions = (
   tabs: TabsBinding,
   work: EngineWork,
   showLocation: ShowLocation,
+  driver: HistoryDriver,
 ) => {
   /* The router, the values on their way, and the tab operation waiting to run */
   const navigate = useNavigate();
@@ -37,6 +39,7 @@ const useLocationStateTransactions = (
         showLocation,
         guards,
         work,
+        driver,
       }),
   );
 

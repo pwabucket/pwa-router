@@ -1,10 +1,8 @@
 import type { ValueChange } from "../core/planChanges";
-import type { TabsOp, TabsWrite } from "../../tabs/core/planTabsOp";
+import type { TabsOp } from "../../tabs/core/planTabsOp";
 
 /** The next piece of work the engine sends */
 type Intent =
-  /** The write that finishes a running operation once its close has landed */
-  | { kind: "continue"; write: TabsWrite }
   /** A tab operation */
   | { kind: "tabs"; op: TabsOp }
   /** Every queued value change, sent as one transaction */
@@ -12,7 +10,6 @@ type Intent =
 
 /** The engine's queued work, taken one intent at a time */
 class IntentQueue {
-  private continuation: TabsWrite | null = null;
   private tabsOp: TabsOp | null = null;
   private changes = new Map<string, ValueChange>();
 
@@ -33,31 +30,19 @@ class IntentQueue {
     this.tabsOp = op;
   }
 
-  /** Queues the write that finishes a running operation */
-  continueWith(write: TabsWrite) {
-    this.continuation = write;
-  }
-
   /** The queued value changes, by key */
   get queuedChanges(): ReadonlyMap<string, ValueChange> {
     return this.changes;
   }
 
-  /** A tab operation, or the write finishing one, is still queued */
+  /** A tab operation is still queued */
   get hasTabsWork() {
-    return this.continuation !== null || this.tabsOp !== null;
+    return this.tabsOp !== null;
   }
 
-  /** Takes the next intent: an operation's finishing write, a tab operation, then the value changes */
+  /** Takes the next intent: a tab operation, then the value changes */
   takeNext(): Intent | null {
-    /* An operation's finishing write first */
-    if (this.continuation) {
-      const write = this.continuation;
-      this.continuation = null;
-      return { kind: "continue", write };
-    }
-
-    /* Then a tab operation */
+    /* A tab operation first */
     if (this.tabsOp) {
       const op = this.tabsOp;
       this.tabsOp = null;

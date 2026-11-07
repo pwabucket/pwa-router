@@ -21,10 +21,12 @@ import {
   writeChanges,
   writeClose,
   writeLanding,
+  writeLandingThenEntry,
   writeTabsEntry,
   writeVirtualPop,
 } from "../history/historyWrites";
 import { IntentQueue } from "./IntentQueue";
+import type { HistoryDriver } from "../driver/HistoryDriver";
 
 /** Values on their way to the history, by key */
 type LocationStateOverlay = ReadonlyMap<string, unknown>;
@@ -65,6 +67,8 @@ interface TransactionsDeps {
   showLocation: ShowLocation;
   guards: LeaveGuardRegistry;
   work: EngineWork;
+  /** Runs the closes that land below the current entry */
+  driver: HistoryDriver;
 }
 
 /** An empty overlay */
@@ -176,7 +180,7 @@ class LocationStateTransactions {
   /** Sends intents in order until one navigates, when nothing is in flight */
   #send() {
     /* Wait while work is in flight or a correction runs */
-    const { location, isCorrecting, navigate } = this.#inputs;
+    const { location, isCorrecting } = this.#inputs;
     if (this.#deps.work.isSent || isCorrecting) return;
 
     /* Take the queued intents in order */
@@ -185,13 +189,6 @@ class LocationStateTransactions {
       intent;
       intent = this.#intents.takeNext()
     ) {
-      /* A running operation's finishing write */
-      if (intent.kind === "continue") {
-        this.#markSent(new Map(), location);
-        writeTabsEntry(navigate, intent.write);
-        return;
-      }
-
       /* A tab operation or value changes; stop once one is sent */
       const isSent =
         intent.kind === "tabs"
@@ -215,17 +212,19 @@ class LocationStateTransactions {
     this.#deps.showLocation(() => null);
   }
 
-  /** Runs a tab plan: its close (its write continues once it lands), or its write alone */
+  /** Runs a tab plan: its close then its write as one intent, its close alone, or its write alone */
   #runTabsPlan(plan: TabsPlan, location: Location) {
     /* Mark the tab operation as running and sent */
     const { navigate } = this.#inputs;
     this.#deps.work.setOperating(true);
     this.#markSent(new Map(), location);
 
-    /* Close first and continue with the write, or write alone */
-    if (plan.landing !== undefined) {
-      if (plan.write) this.#intents.continueWith(plan.write);
-      writeLanding(navigate, plan.landing, location);
+    /* Close then write, close alone, or write alone */
+    const { driver } = this.#deps;
+    if (plan.landing !== undefined && plan.write) {
+      writeLandingThenEntry(driver, plan.landing, location, plan.write);
+    } else if (plan.landing !== undefined) {
+      writeLanding(navigate, driver, plan.landing, location);
     } else if (plan.write) {
       writeTabsEntry(navigate, plan.write);
     }
@@ -313,11 +312,9 @@ class LocationStateTransactions {
 
       /* Close onto a virtual step, or back to the target */
       if (plan.target.kind === "virtualPop") {
-        writeVirtualPop(navigate, plan.target, location, (write) =>
-          this.#intents.continueWith(write),
-        );
+        writeVirtualPop(navigate, this.#deps.driver, plan.target, location);
       } else {
-        writeClose(navigate, plan.target, location);
+        writeClose(navigate, this.#deps.driver, plan.target, location);
       }
       return true;
     }

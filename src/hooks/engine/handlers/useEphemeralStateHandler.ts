@@ -4,7 +4,6 @@ import {
   useNavigationType,
   type Location,
 } from "react-router";
-import { routerState } from "../../../constants";
 import { readEntry } from "../../../lib/engine/core/record";
 import {
   readNonPersistentKeys,
@@ -13,11 +12,13 @@ import {
 } from "../../../lib/engine/core/queries";
 import { readHistoryIndex } from "../../../lib/engine/history/historyIndex";
 import { getLocationPath } from "../../../lib/engine/core/locationPath";
+import type { HistoryDriver } from "../../../lib/engine/driver/HistoryDriver";
 
 /** A hook that discards ephemeral (persist: false) values restored after a reload */
 const useEphemeralStateHandler = (
   location: Location,
   tryLock: () => boolean,
+  driver: HistoryDriver,
 ) => {
   /* The router, how the location was reached, and the entries created this session */
   const navigate = useNavigate();
@@ -85,16 +86,23 @@ const useEphemeralStateHandler = (
       return;
     }
 
-    /* Return before the first push like closing it, or just drop the values */
+    /* Return before the first push like closing it: reset the pointer, then jump */
+    if (canReturnToIndex) {
+      driver.run(async (moves) => {
+        await moves.push(getLocationPath(location), sanitizedLocation.state);
+        await moves.go(returnIndex - window.history.length - 1);
+      });
+      return;
+    }
+
+    /* Nothing to return to: just drop the values */
     navigate(getLocationPath(location), {
       replace: true,
       flushSync: true,
-      state: {
-        ...sanitizedLocation.state,
-        ...routerState.destroy(canReturnToIndex ? returnIndex : undefined),
-      },
+      state: sanitizedLocation.state,
     });
   }, [
+    driver,
     hasStaleEphemeralState,
     isRouterListening,
     returnIndex,

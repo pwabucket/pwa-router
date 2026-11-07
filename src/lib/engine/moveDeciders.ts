@@ -1,4 +1,5 @@
-import type { Location, NavigateFunction, NavigationType } from "react-router";
+import type { Location, NavigationType } from "react-router";
+import type { Moves } from "./driver/HistoryDriver";
 
 /** A history move the user made, away from the settled location */
 interface UserMove {
@@ -17,8 +18,8 @@ interface UndoDecision {
   undo: "traverse" | "restore";
   /** Runs as the move is undone */
   onUndo?: () => void;
-  /** Runs once the undo has landed back */
-  onLanded: (navigate: NavigateFunction) => void;
+  /** Runs once the undo has landed back; its moves go through the driver */
+  onLanded: (moves: Moves) => Promise<unknown> | void;
 }
 
 /** Decides whether a user move is undone; the first decider that does wins */

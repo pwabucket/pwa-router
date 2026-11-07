@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ROUTER_RECORD } from "../../../constants";
 import { createArea, createRecord } from "../../engine/core/record";
-import { at, back } from "../../engine/tests/moves";
+import { at, back, fakeMoves } from "../../engine/tests/moves";
 import { createVirtualStepDecider } from "../virtualStepDecider";
 
 /** The decider with the test's area mounted */
@@ -40,11 +40,11 @@ describe("virtual step decider", () => {
     const decision = virtualStepDecider(back(restored, at("/")));
     expect(decision?.undo).toBe("traverse");
 
-    const navigate = vi.fn();
-    decision?.onLanded(navigate);
-    expect(navigate).toHaveBeenCalledWith(
+    const moves = fakeMoves();
+    decision?.onLanded(moves);
+    expect(moves.replace).toHaveBeenCalledWith(
       { pathname: "/search", search: "", hash: "" },
-      expect.objectContaining({ replace: true }),
+      expect.anything(),
     );
   });
 

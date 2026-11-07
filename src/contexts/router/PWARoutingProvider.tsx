@@ -1,11 +1,18 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
-import { useLocation, type Location } from "react-router";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from "react";
+import { useLocation, useNavigate, type Location } from "react-router";
 
 import {
   ROUTER_DESTROY_INDEX,
   ROUTER_FROM_POSITION,
   ROUTER_NAVIGATE_INDEX,
 } from "../../constants";
+import { HistoryDriver } from "../../lib/engine/driver/HistoryDriver";
 import { LeaveGuardsContext } from "../guards/LeaveGuardsContext";
 import { LocationStateTransactionsContext } from "../layers/LocationStateTransactionsContext";
 import { PWARoutingContext } from "./PWARoutingContext";
@@ -20,15 +27,12 @@ import { applyOverlay } from "../../lib/engine/transactions/overlay";
 import { EngineWork } from "../../lib/engine/EngineWork";
 import { useCorrectionLock } from "../../hooks/engine/useCorrectionLock";
 import { useDeepLinkHomeHandler } from "../../hooks/engine/handlers/useDeepLinkHomeHandler";
-import { useDestroyIndexHandler } from "../../hooks/engine/handlers/useDestroyIndexHandler";
 import { useEphemeralStateHandler } from "../../hooks/engine/handlers/useEphemeralStateHandler";
-import { useFromPositionHandler } from "../../hooks/engine/handlers/useFromPositionHandler";
 import { createGuardDecider } from "../../lib/guards/guardDecider";
 import { createVirtualStepDecider } from "../../lib/tabs/virtualStepDecider";
 import { useMoveWatcher } from "../../hooks/engine/useMoveWatcher";
 import { useLocationStateTransactions } from "../../hooks/engine/useLocationStateTransactions";
-import { useNavigateIndexHandler } from "../../hooks/engine/handlers/useNavigateIndexHandler";
-import { usePendingNavigationHandler } from "../../hooks/engine/handlers/usePendingNavigationHandler";
+import { useStateMarkersHandler } from "../../hooks/engine/handlers/useStateMarkersHandler";
 import { useTabsHandler } from "../../hooks/tabs/useTabsHandler";
 
 /** Props of PWARoutingProvider */
@@ -49,6 +53,16 @@ const PWARoutingProvider = ({
   const [guards] = useState(() => new LeaveGuardRegistry());
   const [work] = useState(() => new EngineWork());
 
+  /* The driver running corrections as moves, rendering again when it starts or stops */
+  const routerNavigate = useNavigate();
+  const [, renderDriverChange] = useReducer((count: number) => count + 1, 0);
+  const [driver] = useState(() => new HistoryDriver(renderDriverChange));
+
+  /* Every location on screen reaches the driver, landing its waiting move */
+  useLayoutEffect(() => {
+    driver.land(location, routerNavigate);
+  });
+
   /* The tab areas whose TabsRoot is mounted right now */
   const [registeredAreas] = useState(() => new Set<string>());
 
@@ -57,7 +71,7 @@ const PWARoutingProvider = ({
 
   /* Handlers run in call order, which is their priority */
   const { sanitizedLocation, hasStaleEphemeralState } =
-    useEphemeralStateHandler(location, tryLock);
+    useEphemeralStateHandler(location, tryLock, driver);
 
   /* Stale ephemeral state may wait for the router, so nothing else runs first */
   const tryLockAfterEphemeralCleanup = useCallback(
@@ -65,25 +79,18 @@ const PWARoutingProvider = ({
     [hasStaleEphemeralState, tryLock],
   );
 
-  /* The handlers that move the history to correct it */
-  const [pendingNavigation, setPendingNavigation] = useFromPositionHandler(
+  /* The markers an app puts on its navigations, run as driver intents */
+  useStateMarkersHandler(
     location,
     tryLockAfterEphemeralCleanup,
     showLocation,
-  );
-  useDestroyIndexHandler(location, tryLockAfterEphemeralCleanup);
-  useNavigateIndexHandler(location, tryLockAfterEphemeralCleanup);
-  usePendingNavigationHandler(
-    pendingNavigation,
-    setPendingNavigation,
-    tryLockAfterEphemeralCleanup,
-    showLocation,
+    driver,
   );
 
   /* A correction is pending or in flight on the current entry */
   const hasCorrection =
+    driver.isRunning ||
     hasStaleEphemeralState ||
-    pendingNavigation !== null ||
     location.state?.[ROUTER_FROM_POSITION] !== undefined ||
     location.state?.[ROUTER_DESTROY_INDEX] !== undefined ||
     location.state?.[ROUTER_NAVIGATE_INDEX] !== undefined;
@@ -104,6 +111,7 @@ const PWARoutingProvider = ({
     work,
     hasCorrection,
     tryLockAfterEphemeralCleanup,
+    driver,
   );
 
   /* Wake guards whose move has landed outside their scope */
@@ -131,6 +139,7 @@ const PWARoutingProvider = ({
       tabsHandler.engine,
       work,
       showLocation,
+      driver,
     );
 
   /* Home (or a tab's roots) go under an inner page the app was first opened on */

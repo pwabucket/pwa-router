@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { ValueChange } from "../../core/planChanges";
-import type { TabsWrite } from "../../../tabs/core/planTabsOp";
 import { IntentQueue } from "../IntentQueue";
 
 /** A change with default flags */
@@ -12,21 +11,12 @@ const change = (key: string, value: unknown): ValueChange => ({
   replace: false,
 });
 
-/** A tab write */
-const write: TabsWrite = {
-  to: "/x",
-  replace: false,
-  buildState: () => undefined,
-};
-
 describe("IntentQueue", () => {
-  it("takes a finishing write, then a tab operation, then changes", () => {
+  it("takes a tab operation, then changes", () => {
     const queue = new IntentQueue();
     queue.queueChange(change("a", 1), undefined);
     queue.queueTabsOp({ kind: "popToRoot", area: "main" });
-    queue.continueWith(write);
 
-    expect(queue.takeNext()?.kind).toBe("continue");
     expect(queue.takeNext()?.kind).toBe("tabs");
     expect(queue.takeNext()).toEqual({
       kind: "changes",
@@ -64,7 +54,7 @@ describe("IntentQueue", () => {
     const queue = new IntentQueue();
     expect(queue.hasTabsWork).toBe(false);
 
-    queue.continueWith(write);
+    queue.queueTabsOp({ kind: "popToRoot", area: "main" });
     expect(queue.hasTabsWork).toBe(true);
 
     queue.takeNext();

@@ -11,7 +11,7 @@
   },
   "close from depth": {
     "push": 1,
-    "replace": 1,
+    "replace": 0,
     "go": 1
   },
   "swap a menu for a dialog": {
