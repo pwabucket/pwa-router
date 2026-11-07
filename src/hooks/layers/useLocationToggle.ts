@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { type NavigateOptions } from "react-router";
 import {
   useLocationState,
@@ -25,13 +25,19 @@ const useLocationToggle = (
     indexKey,
   });
 
+  /* The latest stamp, read when closing, so the setter stays stable */
+  const indexRef = useRef(index);
+
+  // oxlint-disable-next-line react/refs
+  indexRef.current = index;
+
   /* Open sets true; close clears the value, back to the stamp */
   const toggle = useCallback(
     (status: boolean, options?: NavigateOptions) => {
       if (status) setOpen(true, options);
-      else setOpen(undefined, options, index);
+      else setOpen(undefined, options, indexRef.current);
     },
-    [index, setOpen],
+    [setOpen],
   );
 
   /* The status and its setter */

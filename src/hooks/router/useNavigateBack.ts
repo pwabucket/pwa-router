@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { type NavigateOptions } from "react-router";
 import { useLocation } from "./useLocation";
 import { useNavigate } from "./useNavigate";
@@ -9,12 +9,19 @@ const useNavigateBack = (root = "/") => {
   const navigate = useNavigate();
   const { key } = useLocation();
 
+  /* The latest key and root, read when going back, so the callback stays stable */
+  const latestRef = useRef({ key, root });
+
+  // oxlint-disable-next-line react/refs
+  latestRef.current = { key, root };
+
   /* Back, or root when the app was opened on this entry */
   const navigateBack = useCallback(
     (options?: NavigateOptions) => {
+      const { key, root } = latestRef.current;
       return key !== "default" ? navigate(-1) : navigate(root, options);
     },
-    [key, navigate, root],
+    [navigate],
   );
 
   return navigateBack;
