@@ -84,6 +84,14 @@ A layer is open as long as its value is in the history, whether or not anything 
 
 Keep each layer's owner outside lists whose rows mount and unmount: one owner per dialog, opened from the rows with [`useSetLocationToggle`](#usesetlocationtoggle), which never re-renders on navigation.
 
+### How long the history gets
+
+Browsers cap a tab's history: Chromium keeps 50 entries and drops the oldest after that. The router finds each layer's entry by the history's length when the layer was pushed, so in a full history its corrections can land on the wrong entry: closing a layer may stop short and leave it open. The router doesn't handle a full history; keep the app's history short:
+
+- **Closing layers and switching tabs don't grow it**, and neither does going back.
+- **Moving between sections that aren't deeper,** such as links in a menu or a sidebar, should replace the current entry (`replace`, or [`routerState.from(-1)`](#state-markers) from a layer) instead of adding one.
+- **Entries from sites opened earlier in the same browser tab count too.** An installed app opens in its own window, with a fresh history.
+
 ## Tabbed apps
 
 For apps with a tab bar (home, search, profile…), where each tab remembers where you were.
