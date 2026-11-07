@@ -57,7 +57,6 @@ const useLeaveGuard = ({
     (view) => view.resolvedLocation.state?.[ROUTER_GUARD] === id,
   );
 
-
   /* Register the guard, and remove it on unmount */
   useLayoutEffect(() => {
     guards.set(id, { key, pathname, when, tab });

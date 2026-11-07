@@ -1,9 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  useNavigate,
-  useNavigationType,
-  type Location,
-} from "react-router";
+import { useNavigate, useNavigationType, type Location } from "react-router";
 import { readEntry } from "../../../lib/engine/core/record";
 import {
   readNonPersistentKeys,

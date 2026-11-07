@@ -23,8 +23,7 @@ const readHistory = (page: Page): Promise<HistorySnapshot> =>
       length: history.length,
       index: history.state?.idx,
       state: history.state?.usr ?? null,
-      isCorrecting:
-        document.documentElement.getAttribute(attribute) === "true",
+      isCorrecting: document.documentElement.getAttribute(attribute) === "true",
     }),
     ROUTER_STATUS_ATTRIBUTE,
   );

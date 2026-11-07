@@ -1,11 +1,5 @@
 import { useParams } from "react-router";
-import {
-  Link,
-  Route,
-  Routes,
-  TabsRoot,
-  useTabs,
-} from "../../../src";
+import { Link, Route, Routes, TabsRoot, useTabs } from "../../../src";
 import { TabPane } from "../components/TabPane";
 
 /** The outer tabs */

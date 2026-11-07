@@ -6,13 +6,7 @@ import {
 } from "../planChanges";
 import { ROUTER_RECORD } from "../../../../constants";
 import { createRecord, readRecord } from "../record";
-import {
-  pushedValue,
-  rootRecord,
-  step,
-  stepIds,
-  tabArea,
-} from "./helpers";
+import { pushedValue, rootRecord, step, stepIds, tabArea } from "./helpers";
 
 /** A change with default flags */
 const change = (
@@ -29,10 +23,7 @@ const change = (
 });
 
 /** A plan entry from app values and a record */
-const entry = (
-  values: Record<string, unknown>,
-  record = createRecord(),
-) => ({
+const entry = (values: Record<string, unknown>, record = createRecord()) => ({
   key: "k",
   address: { pathname: "/p", search: "", hash: "" },
   state: { ...values, [ROUTER_RECORD]: record },

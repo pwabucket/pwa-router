@@ -139,10 +139,7 @@ export const collapseSteps = (
   );
 
 /** An inner area restored into one entry: its current step takes it, every other step is virtual */
-const collapseArea = (
-  area: AreaRecord,
-  position: number,
-): AreaRecord => {
+const collapseArea = (area: AreaRecord, position: number): AreaRecord => {
   /* Every other tab's steps, made virtual */
   const saved: Record<string, StepRecord[]> = {};
   for (const [tab, steps] of Object.entries(area.saved)) {

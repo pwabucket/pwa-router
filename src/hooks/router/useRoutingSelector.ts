@@ -10,9 +10,7 @@ const useRoutingSelector = <T>(
   const store = useRoutingStore();
 
   /* The slice of the current view */
-  return useSyncExternalStore(store.subscribe, () =>
-    selector(store.getView()),
-  );
+  return useSyncExternalStore(store.subscribe, () => selector(store.getView()));
 };
 
 export { useRoutingSelector };

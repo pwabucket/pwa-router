@@ -5,7 +5,10 @@ import {
   type NavLinkProps,
 } from "react-router";
 import { usePWARouting } from "../../hooks/router/usePWARouting";
-import { useLinkProps, type PWALinkOwnProps } from "../../hooks/links/useLinkProps";
+import {
+  useLinkProps,
+  type PWALinkOwnProps,
+} from "../../hooks/links/useLinkProps";
 
 /** Props of this package's NavLink */
 type PWANavLinkProps = NavLinkProps & PWALinkOwnProps;

@@ -1,14 +1,5 @@
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  useNavigate,
-  useNavigationType,
-  type Location,
-} from "react-router";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { useNavigate, useNavigationType, type Location } from "react-router";
 import { adoptAreas } from "../../lib/tabs/core/adoptAreas";
 import {
   settleMemories,

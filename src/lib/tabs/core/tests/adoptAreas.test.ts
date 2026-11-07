@@ -3,14 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createArea, createRecord } from "../../../engine/core/record";
 import { stepIds } from "../../../engine/core/tests/helpers";
 import { adoptTabs } from "../adoptAreas";
-import {
-  config,
-  entry,
-  layout,
-  layoutEntry,
-  memory,
-  opened,
-} from "./helpers";
+import { config, entry, layout, layoutEntry, memory, opened } from "./helpers";
 
 describe("adoptTabs", () => {
   it("records a pushed page above the previous one, snapshotted", () => {

@@ -2,15 +2,15 @@ import { useLocationToggle } from "../../../src";
 
 /** A sheet holding a frame that navigates on its own */
 const Sheet = ({ onClose }: { onClose: () => void }) => (
-    <div>
-      {/* A frame whose links add history entries */}
-      <iframe src="/frame.html" title="Sheet frame" />
+  <div>
+    {/* A frame whose links add history entries */}
+    <iframe src="/frame.html" title="Sheet frame" />
 
-      {/* Close */}
-      <button type="button" onClick={onClose}>
-        Close sheet
-      </button>
-    </div>
+    {/* Close */}
+    <button type="button" onClick={onClose}>
+      Close sheet
+    </button>
+  </div>
 );
 
 /** A sheet with a frame inside, closed back to where it opened */

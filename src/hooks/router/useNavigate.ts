@@ -37,44 +37,47 @@ const useNavigate = (): PWANavigateFunction => {
   latestRef.current = { navigate, tabsEngine, exitArea };
 
   /* The engine-aware navigate, stable across navigations */
-  return useCallback((to: To | number, options?: PWANavigateOptions) => {
-    /* The latest navigate and tabs parts, and the view as it is now */
-    const { navigate, tabsEngine, exitArea } = latestRef.current;
-    const {
-      resolvedLocation: location,
-      isCorrecting,
-      isInactive,
-    } = routingStore.getView();
+  return useCallback(
+    (to: To | number, options?: PWANavigateOptions) => {
+      /* The latest navigate and tabs parts, and the view as it is now */
+      const { navigate, tabsEngine, exitArea } = latestRef.current;
+      const {
+        resolvedLocation: location,
+        isCorrecting,
+        isInactive,
+      } = routingStore.getView();
 
-    /* Navigating now would race the engine, or come from a tab that isn't active */
-    if (isCorrecting || isInactive) return;
+      /* Navigating now would race the engine, or come from a tab that isn't active */
+      if (isCorrecting || isInactive) return;
 
-    /* A delta goes through as is */
-    if (typeof to === "number") {
-      navigate(to);
-      return;
-    }
+      /* A delta goes through as is */
+      if (typeof to === "number") {
+        navigate(to);
+        return;
+      }
 
-    /* The options without the tabs flag */
-    const { exitTabs, ...navigateOptions } = options ?? {};
+      /* The options without the tabs flag */
+      const { exitTabs, ...navigateOptions } = options ?? {};
 
-    /* Leaving the tabbed area runs as a tab operation */
-    if (exitTabs && tabsEngine && exitArea) {
-      tabsEngine.queueTabsOp({
-        kind: "exit",
-        area: exitArea,
-        to: resolvePath(to, location.pathname),
-        options: navigateOptions,
+      /* Leaving the tabbed area runs as a tab operation */
+      if (exitTabs && tabsEngine && exitArea) {
+        tabsEngine.queueTabsOp({
+          kind: "exit",
+          area: exitArea,
+          to: resolvePath(to, location.pathname),
+          options: navigateOptions,
+        });
+        return;
+      }
+
+      /* Navigate, replacing non-inherited entries unless told otherwise */
+      navigate(to, {
+        ...navigateOptions,
+        replace: navigateOptions.replace ?? isNonInheritedEntry(location.state),
       });
-      return;
-    }
-
-    /* Navigate, replacing non-inherited entries unless told otherwise */
-    navigate(to, {
-      ...navigateOptions,
-      replace: navigateOptions.replace ?? isNonInheritedEntry(location.state),
-    });
-  }, [routingStore]) as PWANavigateFunction;
+    },
+    [routingStore],
+  ) as PWANavigateFunction;
 };
 
 export { useNavigate };

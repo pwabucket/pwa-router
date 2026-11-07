@@ -33,8 +33,7 @@ const countPushes = (page: Page) =>
 const readPushes = (page: Page) =>
   page.evaluate(
     () =>
-      (window as unknown as { pushCounts: { push: number } }).pushCounts
-        .push,
+      (window as unknown as { pushCounts: { push: number } }).pushCounts.push,
   );
 
 /** Library open on music, two albums deep, after a page in books */
@@ -94,31 +93,30 @@ test.describe("nested tabs", () => {
     await expect(page.getByText("Active books")).toBeVisible();
   });
 
-  test(
-    "after an outer restore, back from an inner tab's root shows the default",
-    async ({ page }) => {
-      /* Restore the library, then back to music's root */
-      await openMusicDeep(page);
-      await press(page, "home tab");
-      await press(page, "library tab");
-      await goBack(page);
-      await goBack(page);
+  test("after an outer restore, back from an inner tab's root shows the default", async ({
+    page,
+  }) => {
+    /* Restore the library, then back to music's root */
+    await openMusicDeep(page);
+    await press(page, "home tab");
+    await press(page, "library tab");
+    await goBack(page);
+    await goBack(page);
 
-      /* Back from music's root shows books where it was left */
-      await goBack(page);
-      await expectShown(page, "Book 1");
+    /* Back from music's root shows books where it was left */
+    await goBack(page);
+    await expectShown(page, "Book 1");
 
-      /* Then books' root, then the outer home */
-      await goBack(page);
-      await expectShown(page, "Books");
-      await goBack(page);
-      await expect(
-        page
-          .locator("div[data-outer-tab]:not([hidden])")
-          .getByText("Outer home", { exact: true }),
-      ).toBeVisible();
-    },
-  );
+    /* Then books' root, then the outer home */
+    await goBack(page);
+    await expectShown(page, "Books");
+    await goBack(page);
+    await expect(
+      page
+        .locator("div[data-outer-tab]:not([hidden])")
+        .getByText("Outer home", { exact: true }),
+    ).toBeVisible();
+  });
 
   test("after an outer restore, the default tab button shows it", async ({
     page,

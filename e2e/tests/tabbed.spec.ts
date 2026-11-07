@@ -43,8 +43,7 @@ const countHistoryWrites = async (page: Page) => {
 const readHistoryWrites = (page: Page) =>
   page.evaluate(
     () =>
-      (window as unknown as { historyWrites: { push: number } })
-        .historyWrites,
+      (window as unknown as { historyWrites: { push: number } }).historyWrites,
   );
 
 /** Goes from the home feed to the search tab's photo of the given number */

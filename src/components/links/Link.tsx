@@ -1,6 +1,9 @@
 import { forwardRef } from "react";
 import { Link as RouterLink, type LinkProps } from "react-router";
-import { useLinkProps, type PWALinkOwnProps } from "../../hooks/links/useLinkProps";
+import {
+  useLinkProps,
+  type PWALinkOwnProps,
+} from "../../hooks/links/useLinkProps";
 
 /** Props of this package's Link */
 type PWALinkProps = LinkProps & PWALinkOwnProps;
