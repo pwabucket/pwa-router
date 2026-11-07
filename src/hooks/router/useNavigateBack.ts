@@ -1,27 +1,21 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { type NavigateOptions } from "react-router";
-import { useLocation } from "./useLocation";
 import { useNavigate } from "./useNavigate";
+import { useRoutingStore } from "./useRoutingStore";
 
 /** A hook for an in-app back button; goes to the root when nothing is behind */
 const useNavigateBack = (root = "/") => {
-  /* The engine-aware navigate and the current entry's key */
+  /* The engine-aware navigate, and the routing store read when going back */
   const navigate = useNavigate();
-  const { key } = useLocation();
-
-  /* Keeps the function stable across navigations */
-  const keyRef = useRef(key);
-
-  // oxlint-disable-next-line react/refs
-  keyRef.current = key;
+  const routingStore = useRoutingStore();
 
   /* The back function: back one entry, or to the root when nothing is behind */
   return useCallback(
     (options?: NavigateOptions) =>
-      keyRef.current !== "default"
+      routingStore.getView().resolvedLocation.key !== "default"
         ? navigate(-1)
         : navigate(root, options),
-    [navigate, root],
+    [navigate, routingStore, root],
   );
 };
 

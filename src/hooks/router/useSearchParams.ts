@@ -4,7 +4,7 @@ import {
   type SetURLSearchParams,
   type URLSearchParamsInit,
 } from "react-router";
-import { useLocation } from "./useLocation";
+import { useRoutingSelector } from "./useRoutingSelector";
 import { useNavigate } from "./useNavigate";
 
 /** A hook for search params aware of the engine: read from the resolved location, set through useNavigate */
@@ -14,7 +14,7 @@ const useSearchParams = (
   /* The default params, whether the params were set, the search and navigate */
   const [defaultSearchParams] = useState(() => createSearchParams(defaultInit));
   const [hasSetSearchParams, setHasSetSearchParams] = useState(false);
-  const { search } = useLocation();
+  const search = useRoutingSelector((view) => view.resolvedLocation.search);
   const navigate = useNavigate();
 
   /* The search params, with the defaults added */

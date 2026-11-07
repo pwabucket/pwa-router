@@ -9,6 +9,11 @@ import {
 import { LeaveGuardsContext } from "../guards/LeaveGuardsContext";
 import { LocationStateTransactionsContext } from "../layers/LocationStateTransactionsContext";
 import { PWARoutingContext } from "./PWARoutingContext";
+import { RoutingStoreContext } from "./RoutingStoreContext";
+import { useOwnRoutingStore } from "../../hooks/router/useOwnRoutingStore";
+import { useStableNavigate } from "../../hooks/router/useStableNavigate";
+import { RouterNavigateContext } from "./RouterNavigateContext";
+import { TabsOperationsContext } from "../tabs/TabsOperationsContext";
 import { TabsEngineContext } from "../tabs/TabsEngineContext";
 import { LeaveGuardRegistry } from "../../lib/guards/LeaveGuardRegistry";
 import { applyOverlay } from "../../lib/engine/transactions/overlay";
@@ -158,16 +163,28 @@ const PWARoutingProvider = ({
     [resolvedLocation, isCorrecting],
   );
 
-  /* The engine's view, guards, transactions and tabs engine for the app */
+  /* The store of the engine's view, read in slices or when acting */
+  const routingStore = useOwnRoutingStore(value);
+
+  /* React Router's navigate as one stable function */
+  const stableNavigate = useStableNavigate();
+
+  /* The engine's view and its store, the guards, both queues, the tabs engine and a stable navigate for the app */
   return (
     <PWARoutingContext.Provider value={value}>
-      <LeaveGuardsContext.Provider value={guards}>
-        <LocationStateTransactionsContext.Provider value={queueChange}>
-          <TabsEngineContext.Provider value={tabsEngine}>
-            {children}
-          </TabsEngineContext.Provider>
-        </LocationStateTransactionsContext.Provider>
-      </LeaveGuardsContext.Provider>
+      <RoutingStoreContext.Provider value={routingStore}>
+        <LeaveGuardsContext.Provider value={guards}>
+          <LocationStateTransactionsContext.Provider value={queueChange}>
+            <TabsEngineContext.Provider value={tabsEngine}>
+              <TabsOperationsContext.Provider value={queueTabsOp}>
+                <RouterNavigateContext.Provider value={stableNavigate}>
+                  {children}
+                </RouterNavigateContext.Provider>
+              </TabsOperationsContext.Provider>
+            </TabsEngineContext.Provider>
+          </LocationStateTransactionsContext.Provider>
+        </LeaveGuardsContext.Provider>
+      </RoutingStoreContext.Provider>
     </PWARoutingContext.Provider>
   );
 };

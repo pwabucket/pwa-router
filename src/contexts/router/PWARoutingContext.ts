@@ -11,7 +11,7 @@ interface PWARoutingContextValue {
   isInactive: boolean;
 }
 
-/** The engine's view of the nearest router; every TabView gives its tab's own */
+/** The engine's view of the nearest router, read whole; every TabView gives its tab's own */
 const PWARoutingContext = createContext<PWARoutingContextValue | null>(null);
 
 export { PWARoutingContext };

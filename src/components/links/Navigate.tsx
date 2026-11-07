@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { NavigateProps } from "react-router";
 import { useNavigate } from "../../hooks/router/useNavigate";
-import { usePWARouting } from "../../hooks/router/usePWARouting";
+import { useRoutingSelector } from "../../hooks/router/useRoutingSelector";
 
 /** Props of this package's Navigate */
 interface PWANavigateProps extends NavigateProps {
@@ -19,7 +19,7 @@ const Navigate = ({
 }: PWANavigateProps) => {
   /* The engine-aware navigate and the engine's status */
   const navigate = useNavigate();
-  const { isCorrecting } = usePWARouting();
+  const isCorrecting = useRoutingSelector((view) => view.isCorrecting);
 
   /* Navigate once the engine is idle */
   useEffect(() => {

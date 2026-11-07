@@ -272,7 +272,7 @@ setStep(undefined, { toStart: true });
 - Pass `toStart: true` when clearing to go back before the value's **first** push, instead of its latest. A value pushed several times (steps 1 → 2 → 3) then closes entirely.
 - Pass `replace: true, onOwnEntry: true` to update a pushed value on the entry it was pushed on, closing every layer opened above it first, in one step. [`useLocationTab`](#uselocationtab) uses it to switch between tabs.
 
-The setter is stable for the provider's lifetime, so it can be passed to memoized components.
+The setter is stable for the provider's lifetime, so it can be passed to memoized components. The hook re-renders only when its own value changes, not when other layers open or close.
 
 #### Batched updates
 

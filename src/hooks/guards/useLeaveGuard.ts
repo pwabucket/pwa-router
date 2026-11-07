@@ -5,18 +5,17 @@ import {
   useId,
   useLayoutEffect,
   useMemo,
-  useRef,
 } from "react";
-import { useNavigate } from "react-router";
 import { ROUTER_GUARD } from "../../constants";
 import { LeaveGuardsContext } from "../../contexts/guards/LeaveGuardsContext";
+import { RouterNavigateContext } from "../../contexts/router/RouterNavigateContext";
 import { LocationStateTransactionsContext } from "../../contexts/layers/LocationStateTransactionsContext";
-import { TabsEngineContext } from "../../contexts/tabs/TabsEngineContext";
+import { TabsOperationsContext } from "../../contexts/tabs/TabsOperationsContext";
 import { TabViewContext } from "../../contexts/tabs/TabViewContext";
 import { readHistoryIndex } from "../../lib/engine/history/historyIndex";
 import { questionChange } from "../../lib/guards/LeaveGuardRegistry";
 import { getLocationPath } from "../../lib/engine/core/locationPath";
-import { useLocation } from "../router/useLocation";
+import { useRoutingSelector } from "../router/useRoutingSelector";
 
 /** Options of a leave guard */
 interface UseLeaveGuardOptions {
@@ -48,20 +47,16 @@ const useLeaveGuard = ({
   const id = useId();
   const guards = useContext(LeaveGuardsContext)!;
   const queueChange = useContext(LocationStateTransactionsContext)!;
-  const tabsEngine = useContext(TabsEngineContext);
+  const queueTabsOp = useContext(TabsOperationsContext)!;
   const tab = useContext(TabViewContext);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useContext(RouterNavigateContext)!;
 
   /* The guarded page, and whether this guard's question is open */
-  const { pathname } = location;
-  const isBlocked = location.state?.[ROUTER_GUARD] === id;
+  const pathname = useRoutingSelector((view) => view.resolvedLocation.pathname);
+  const isBlocked = useRoutingSelector(
+    (view) => view.resolvedLocation.state?.[ROUTER_GUARD] === id,
+  );
 
-  /* Keeps the actions stable across navigations */
-  const latestRef = useRef({ navigate, tabsEngine });
-
-  // oxlint-disable-next-line react/refs
-  latestRef.current = { navigate, tabsEngine };
 
   /* Register the guard, and remove it on unmount */
   useLayoutEffect(() => {
@@ -97,7 +92,6 @@ const useLeaveGuard = ({
   const leave = useCallback(() => {
     /* The blocked move, and the latest navigate and tabs engine */
     const attempt = guards.takeAttempt();
-    const { navigate, tabsEngine } = latestRef.current;
 
     /* Nothing blocked by this guard: just close the question */
     if (attempt?.guardId !== id) {
@@ -131,10 +125,10 @@ const useLeaveGuard = ({
       /* A tab operation: replay it; it closes the question with everything else */
       case "tabs":
         queueChange(questionChange());
-        tabsEngine?.queueTabsOp(attempt.op);
+        queueTabsOp(attempt.op);
         break;
     }
-  }, [guards, id, queueChange]);
+  }, [guards, id, navigate, queueChange, queueTabsOp]);
 
   /* The question's status and its answers */
   return useMemo(() => ({ isBlocked, stay, leave }), [isBlocked, stay, leave]);

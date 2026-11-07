@@ -2,7 +2,8 @@ import { useCallback, useContext } from "react";
 import { useResolvedPath, type LinkProps } from "react-router";
 import { TabsEngineContext } from "../../contexts/tabs/TabsEngineContext";
 import { useExitArea } from "../tabs/useExitArea";
-import { usePWARouting } from "../router/usePWARouting";
+import { useRoutingSelector } from "../router/useRoutingSelector";
+import { useRoutingStore } from "../router/useRoutingStore";
 import { isNonInheritedEntry } from "../../lib/engine/core/queries";
 
 /** Props of this package's links, on top of React Router's */
@@ -20,15 +21,16 @@ const useLinkProps = ({
   exitTabs,
 }: Pick<LinkProps, "to" | "replace" | "state" | "onClick"> &
   PWALinkOwnProps) => {
-  /* The engine's view, the tabs engine, the area to exit and the target path */
-  const {
-    resolvedLocation: location,
-    isCorrecting,
-    isInactive,
-  } = usePWARouting();
+  /* The routing store read on click, the tabs engine, the area to exit and the target path */
+  const routingStore = useRoutingStore();
   const tabsEngine = useContext(TabsEngineContext);
   const exitArea = useExitArea();
   const resolvedTo = useResolvedPath(to);
+
+  /* The current entry holds a value other pushes don't inherit; only its changes re-render */
+  const isNonInherited = useRoutingSelector((view) =>
+    isNonInheritedEntry(view.resolvedLocation.state),
+  );
 
   /* The handler for clicks on the link */
   const handleClick = useCallback(
@@ -37,6 +39,7 @@ const useLinkProps = ({
       onClick?.(event);
 
       /* Navigating now would race the engine, or come from a tab that isn't active */
+      const { isCorrecting, isInactive } = routingStore.getView();
       if (isCorrecting || isInactive) {
         event.preventDefault();
         return;
@@ -55,8 +58,7 @@ const useLinkProps = ({
     },
     [
       onClick,
-      isCorrecting,
-      isInactive,
+      routingStore,
       exitTabs,
       tabsEngine,
       exitArea,
@@ -68,7 +70,7 @@ const useLinkProps = ({
 
   /* Replace non-inherited entries unless told otherwise, and handle clicks */
   return {
-    replace: replace ?? isNonInheritedEntry(location.state),
+    replace: replace ?? isNonInherited,
     onClick: handleClick,
   };
 };

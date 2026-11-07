@@ -7,7 +7,7 @@ import {
 } from "react-router";
 import { TabsEngineContext } from "../../contexts/tabs/TabsEngineContext";
 import { useExitArea } from "../tabs/useExitArea";
-import { usePWARouting } from "./usePWARouting";
+import { useRoutingStore } from "./useRoutingStore";
 import { isNonInheritedEntry } from "../../lib/engine/core/queries";
 
 /** Navigate options, plus leaving a tabbed area */
@@ -24,23 +24,27 @@ interface PWANavigateFunction {
 
 /** A hook for a navigate aware of the engine: ignored while correcting or in a tab that isn't active, and replacing non-inherited entries */
 const useNavigate = (): PWANavigateFunction => {
-  /* React Router's navigate, the engine's view, the tabs engine and the area to exit */
+  /* React Router's navigate, the routing store read when navigating, the tabs engine and the area to exit */
   const navigate = useRouterNavigate();
-  const routing = usePWARouting();
+  const routingStore = useRoutingStore();
   const tabsEngine = useContext(TabsEngineContext);
   const exitArea = useExitArea();
 
   /* Keeps the function stable across navigations */
-  const latestRef = useRef({ navigate, routing, tabsEngine, exitArea });
+  const latestRef = useRef({ navigate, tabsEngine, exitArea });
 
   // oxlint-disable-next-line react/refs
-  latestRef.current = { navigate, routing, tabsEngine, exitArea };
+  latestRef.current = { navigate, tabsEngine, exitArea };
 
   /* The engine-aware navigate, stable across navigations */
   return useCallback((to: To | number, options?: PWANavigateOptions) => {
-    /* The latest navigate, engine parts and location status */
-    const { navigate, routing, tabsEngine, exitArea } = latestRef.current;
-    const { resolvedLocation: location, isCorrecting, isInactive } = routing;
+    /* The latest navigate and tabs parts, and the view as it is now */
+    const { navigate, tabsEngine, exitArea } = latestRef.current;
+    const {
+      resolvedLocation: location,
+      isCorrecting,
+      isInactive,
+    } = routingStore.getView();
 
     /* Navigating now would race the engine, or come from a tab that isn't active */
     if (isCorrecting || isInactive) return;
@@ -70,7 +74,7 @@ const useNavigate = (): PWANavigateFunction => {
       ...navigateOptions,
       replace: navigateOptions.replace ?? isNonInheritedEntry(location.state),
     });
-  }, []) as PWANavigateFunction;
+  }, [routingStore]) as PWANavigateFunction;
 };
 
 export { useNavigate };

@@ -2,9 +2,11 @@ import { useContext, useMemo } from "react";
 import type { Location } from "react-router";
 import { LocationStateTransactionsContext } from "../../contexts/layers/LocationStateTransactionsContext";
 import { PWARoutingContext } from "../../contexts/router/PWARoutingContext";
+import { RoutingStoreContext } from "../../contexts/router/RoutingStoreContext";
 import { TabsContext } from "../../contexts/tabs/TabsContext";
 import { TabViewContext } from "../../contexts/tabs/TabViewContext";
 import { TabViewStatusContext } from "../../contexts/tabs/TabViewStatusContext";
+import { useOwnRoutingStore } from "../../hooks/router/useOwnRoutingStore";
 import { usePWARouting } from "../../hooks/router/usePWARouting";
 import type { QueueLocationStateChange } from "../../lib/engine/transactions/LocationStateTransactions";
 import type { StepRecord } from "../../lib/engine/core/record";
@@ -78,6 +80,9 @@ const TabView = ({ id, children }: TabViewProps) => {
   /** The routing the view's screens read */
   const viewRouting = isLive ? liveRouting : savedRouting;
 
+  /* The store of the view's routing, read in slices or when acting */
+  const routingStore = useOwnRoutingStore(viewRouting);
+
   /** The area and tab this view shows, for nested areas and guards */
   const place = useMemo(
     () => ({ area: tabs.config.id, tab: id }),
@@ -92,11 +97,13 @@ const TabView = ({ id, children }: TabViewProps) => {
     <TabViewContext.Provider value={place}>
       <TabViewStatusContext.Provider value={status}>
         <PWARoutingContext.Provider value={viewRouting}>
-          <LocationStateTransactionsContext.Provider
-            value={canAct ? queueChange : ignoreChange}
-          >
-            {children}
-          </LocationStateTransactionsContext.Provider>
+          <RoutingStoreContext.Provider value={routingStore}>
+            <LocationStateTransactionsContext.Provider
+              value={canAct ? queueChange : ignoreChange}
+            >
+              {children}
+            </LocationStateTransactionsContext.Provider>
+          </RoutingStoreContext.Provider>
         </PWARoutingContext.Provider>
       </TabViewStatusContext.Provider>
     </TabViewContext.Provider>

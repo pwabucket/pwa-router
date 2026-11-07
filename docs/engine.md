@@ -26,7 +26,7 @@ Folders are named by kind first, then by feature (`router`, `links`, `layers`, `
 | `src/components/` | Components: `PWARouter`, `Routes`, `RouterStatusProbe`, `Link`, `NavLink`, `Navigate`, `TabsRoot`, `TabView` |
 | `src/contexts/` | Contexts, with the providers that fill them (`PWARoutingProvider`, `LocationStateDefaultsProvider`) |
 | `src/hooks/` | Hooks; `hooks/engine/` holds the engine's runtime hooks, and `hooks/engine/handlers/` the corrections |
-| `src/lib/` | Plain code with no React: `lib/engine/` (`core/` pure record, steps and planner; `transactions/`; `history/`), `lib/tabs/` (`core/` pure tab planning), `lib/guards/`, `lib/layers/` |
+| `src/lib/` | Plain code with no React: `lib/engine/` (`core/` pure record, steps and planner; `transactions/`; `history/`), `lib/tabs/` (`core/` pure tab planning), `lib/guards/`, `lib/layers/`, `lib/router/` (the store hooks read the routing view from, in slices or when acting) |
 | `src/testing/` | The Playwright helpers of the `/testing` entry |
 
 ## The pieces

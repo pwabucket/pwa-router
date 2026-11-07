@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useLocation } from "../router/useLocation";
+import { useRoutingSelector } from "../router/useRoutingSelector";
 import {
   useSetLocationState,
   type SetLocationState,
@@ -15,12 +15,15 @@ const useLocationState = <T>(
   defaultValue: T,
   options?: UseLocationStateOptions,
 ): UseLocationStateReturn<T> => {
-  /* The current location and the value's setter */
-  const location = useLocation();
+  /* The value on the entry, or on its way there; only its changes re-render */
+  const valueFromState = useRoutingSelector(
+    (view) => view.resolvedLocation.state?.[key],
+  );
+
+  /* The value's setter */
   const setValue = useSetLocationState<T>(key, options);
 
-  /* The value on the entry, or on its way there */
-  const valueFromState = location.state?.[key];
+  /* The value, or the default when it isn't set */
   const value: T = valueFromState !== undefined ? valueFromState : defaultValue;
 
   /* The value and its setter */
