@@ -1,84 +1,40 @@
-import { useCallback, useContext, useRef } from "react";
+import { useCallback, useRef } from "react";
 import {
-  resolvePath,
   useNavigate as useRouterNavigate,
+  type NavigateFunction,
   type NavigateOptions,
   type To,
 } from "react-router";
-import { TabsEngineContext } from "../../contexts/tabs/TabsEngineContext";
-import { useExitArea } from "../tabs/useExitArea";
-import { useRoutingStore } from "./useRoutingStore";
-import { isNonInheritedEntry } from "../../lib/engine/core/queries";
+import { usePWARouting } from "./usePWARouting";
+import { isNonInheritedEntry } from "../../lib/layers/nonInheritedState";
 
-/** Navigate options, plus leaving a tabbed area */
-interface PWANavigateOptions extends NavigateOptions {
-  /** Leave the tabbed area, clearing every tab's history (e.g. logout) */
-  exitTabs?: boolean;
-}
-
-/** An engine-aware navigate function */
-interface PWANavigateFunction {
-  (to: To, options?: PWANavigateOptions): void;
-  (delta: number): void;
-}
-
-/** A hook for a navigate aware of the engine: ignored while correcting or in a tab that isn't active, and replacing non-inherited entries */
-const useNavigate = (): PWANavigateFunction => {
-  /* React Router's navigate, the routing store read when navigating, the tabs engine and the area to exit */
+/** A hook for React Router's navigate: ignored while correcting, replaces entries holding non-inherited values, stable */
+const useNavigate = (): NavigateFunction => {
+  /* The router's navigate and the provider's state */
   const navigate = useRouterNavigate();
-  const routingStore = useRoutingStore();
-  const tabsEngine = useContext(TabsEngineContext);
-  const exitArea = useExitArea();
+  const { resolvedLocation: location, isCorrecting } = usePWARouting();
 
   /* Keeps the function stable across navigations */
-  const latestRef = useRef({ navigate, tabsEngine, exitArea });
+  const latestRef = useRef({ navigate, location, isCorrecting });
 
   // oxlint-disable-next-line react/refs
-  latestRef.current = { navigate, tabsEngine, exitArea };
+  latestRef.current = { navigate, location, isCorrecting };
 
-  /* The engine-aware navigate, stable across navigations */
-  return useCallback(
-    (to: To | number, options?: PWANavigateOptions) => {
-      /* The latest navigate and tabs parts, and the view as it is now */
-      const { navigate, tabsEngine, exitArea } = latestRef.current;
-      const {
-        resolvedLocation: location,
-        isCorrecting,
-        isInactive,
-      } = routingStore.getView();
+  /* The navigate function */
+  return useCallback((to: To | number, options?: NavigateOptions) => {
+    const { navigate, location, isCorrecting } = latestRef.current;
 
-      /* Navigating now would race the engine, or come from a tab that isn't active */
-      if (isCorrecting || isInactive) return;
+    /* Navigating now would race the engine */
+    if (isCorrecting) return;
 
-      /* A delta goes through as is */
-      if (typeof to === "number") {
-        navigate(to);
-        return;
-      }
+    /* Going back or forth, or a navigation that replaces non-inherited entries */
+    if (typeof to === "number") return navigate(to);
 
-      /* The options without the tabs flag */
-      const { exitTabs, ...navigateOptions } = options ?? {};
-
-      /* Leaving the tabbed area runs as a tab operation */
-      if (exitTabs && tabsEngine && exitArea) {
-        tabsEngine.queueTabsOp({
-          kind: "exit",
-          area: exitArea,
-          to: resolvePath(to, location.pathname),
-          options: navigateOptions,
-        });
-        return;
-      }
-
-      /* Navigate, replacing non-inherited entries unless told otherwise */
-      navigate(to, {
-        ...navigateOptions,
-        replace: navigateOptions.replace ?? isNonInheritedEntry(location.state),
-      });
-    },
-    [routingStore],
-  ) as PWANavigateFunction;
+    return navigate(to, {
+      ...options,
+      replace: options?.replace ?? isNonInheritedEntry(location.state),
+    });
+  }, []) as NavigateFunction;
 };
 
 export { useNavigate };
-export type { PWANavigateFunction, PWANavigateOptions };

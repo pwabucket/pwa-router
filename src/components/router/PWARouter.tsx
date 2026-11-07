@@ -1,19 +1,13 @@
 import { BrowserRouter, type BrowserRouterProps } from "react-router";
-import {
-  PWARoutingProvider,
-  type PWARoutingProviderProps,
-} from "../../contexts/router/PWARoutingProvider";
+import { PWARoutingProvider } from "../../contexts/router/PWARoutingProvider";
 
-/** Props of PWARouter: BrowserRouter's, plus the engine's */
-type PWARouterProps = BrowserRouterProps &
-  Pick<PWARoutingProviderProps, "deepLinkHome">;
+/** Props of PWARouter: BrowserRouter's */
+type PWARouterProps = BrowserRouterProps;
 
-/** A BrowserRouter with the PWARoutingProvider already inside */
-const PWARouter = ({ children, deepLinkHome, ...props }: PWARouterProps) => (
+/** React Router's BrowserRouter with the PWARoutingProvider inside */
+const PWARouter = ({ children, ...props }: PWARouterProps) => (
   <BrowserRouter {...props}>
-    <PWARoutingProvider deepLinkHome={deepLinkHome}>
-      {children}
-    </PWARoutingProvider>
+    <PWARoutingProvider>{children}</PWARoutingProvider>
   </BrowserRouter>
 );
 

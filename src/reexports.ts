@@ -1,4 +1,4 @@
-/* React Router pieces that need no engine awareness */
+/* React Router pieces passed through unchanged */
 export {
   BrowserRouter,
   Outlet,
@@ -11,13 +11,11 @@ export {
   useHref,
   useInRouterContext,
   useMatch,
-  useNavigationType,
   useOutletContext,
   useParams,
   useResolvedPath,
 } from "react-router";
 
-/* Their types */
 export type {
   BrowserRouterProps,
   LinkProps,

@@ -1,25 +1,12 @@
 import { forwardRef } from "react";
 import { Link as RouterLink, type LinkProps } from "react-router";
-import {
-  useLinkProps,
-  type PWALinkOwnProps,
-} from "../../hooks/links/useLinkProps";
+import { useReplaceDefault } from "../../hooks/links/useReplaceDefault";
 
-/** Props of this package's Link */
-type PWALinkProps = LinkProps & PWALinkOwnProps;
-
-/** A link aware of the engine: ignored while correcting, and replacing non-inherited entries */
-const Link = forwardRef<HTMLAnchorElement, PWALinkProps>(
-  ({ exitTabs, ...props }, ref) => (
-    <RouterLink
-      ref={ref}
-      {...props}
-      {...useLinkProps({ ...props, exitTabs })}
-    />
-  ),
-);
+/** React Router's Link; replaces entries holding non-inherited values */
+const Link = forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => (
+  <RouterLink ref={ref} {...props} replace={useReplaceDefault(props.replace)} />
+));
 
 Link.displayName = "Link";
 
 export { Link };
-export type { PWALinkProps };

@@ -1,17 +1,15 @@
 import type { Location } from "react-router";
 import { createContext } from "react";
 
-/** The engine's view of the router, as screens read it */
+/** The provider's value */
 interface PWARoutingContextValue {
-  /** The location to render: the one the engine is settling on, with values on their way */
+  /** The location screens show */
   resolvedLocation: Location;
-  /** The engine is correcting the history; navigations are ignored meanwhile */
+  /** The provider is correcting the history; useNavigate ignores calls and Navigate waits meanwhile */
   isCorrecting: boolean;
-  /** The reader sits in a tab that isn't active; its navigations are ignored */
-  isInactive: boolean;
 }
 
-/** The engine's view of the nearest router, read whole; every TabView gives its tab's own */
+/** The context of the provider's value */
 const PWARoutingContext = createContext<PWARoutingContextValue | null>(null);
 
 export { PWARoutingContext };

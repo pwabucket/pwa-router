@@ -1,7 +1,7 @@
 {
   "name": "@pwabucket/pwa-router",
   "description": "Hooks and utilities for client-side routing in React applications, designed for Progressive Web Apps (PWAs).",
-  "version": "0.1.0",
+  "version": "0.0.25",
   "type": "module",
   "keywords": [
     "react",
@@ -22,15 +22,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./testing": {
-      "types": "./dist/testing.d.ts",
-      "import": "./dist/testing.js",
-      "require": "./dist/testing.cjs"
     }
   },
   "license": "MIT",
-  "sideEffects": false,
   "files": [
     "dist"
   ],
@@ -39,29 +33,16 @@
   },
   "scripts": {
     "prepublish": "rm -rf ./dist && npm run build",
-    "dev": "vite --config e2e/vite.config.ts",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "typecheck:rr8": "tsc -p tsconfig.rr8.json --noEmit",
-    "test:unit": "vitest run",
-    "test:e2e": "playwright test",
-    "api:list": "node scripts/public-api.mjs",
-    "api:check": "node scripts/public-api.mjs | diff - baselines/public-api.txt",
-    "preview": "vite preview"
+    "typecheck:rr8": "tsc -p tsconfig.rr8.json --noEmit"
   },
   "peerDependencies": {
-    "@playwright/test": ">=1.40",
     "react": "^18 || ^19",
     "react-router": "^7 || ^8"
   },
-  "peerDependenciesMeta": {
-    "@playwright/test": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.59.3",
-    "@playwright/test": "~1.64.1",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -73,7 +54,6 @@
     "react-router-8": "npm:react-router@^8.5.1",
     "typescript": "~6.0.3",
     "vite": "^8.3.2",
-    "vite-plugin-dts": "^5.1.2",
-    "vitest": "^5.1.0"
+    "vite-plugin-dts": "^5.1.2"
   }
 }

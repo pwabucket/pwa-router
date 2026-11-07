@@ -1,3 +1,0 @@
-dist/index.js 39418 bytes, 12361 gzip
-dist/index.cjs 32214 bytes, 10854 gzip
-dist/testing.js 967 bytes, 531 gzip
