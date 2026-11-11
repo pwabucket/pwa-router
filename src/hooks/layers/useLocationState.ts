@@ -29,13 +29,20 @@ interface UseLocationStateOptions {
   indexKey?: string;
   /** Carry the value into entries pushed by other keys (default: true) */
   inherit?: boolean;
+  /** Push on top of the entry, keeping its inherit: false values (default: false) */
+  stack?: boolean;
 }
 
 /** A hook for a value stored on the current history entry; setting pushes, clearing navigates back */
 const useLocationState = <T>(
   key: string,
   defaultValue: T,
-  { persist = true, indexKey, inherit = true }: UseLocationStateOptions = {},
+  {
+    persist = true,
+    indexKey,
+    inherit = true,
+    stack = false,
+  }: UseLocationStateOptions = {},
 ): UseLocationStateReturn<T> => {
   /* The navigate function and the location on screen */
   const navigate = useNavigate();
@@ -56,12 +63,17 @@ const useLocationState = <T>(
     (newValue: T, options?: NavigateOptions) => {
       const location = locationRef.current;
 
-      /* Non-inherited values stay on the entry that set them */
-      const inheritedState = removeNonInheritedValues(location.state);
+      /* Non-inherited values stay on the entry that set them, unless stacking */
+      const inheritedState = stack
+        ? location.state
+        : removeNonInheritedValues(location.state);
 
-      /* navigate replaces entries holding non-inherited values */
+      /* A stacked value pushes; otherwise navigate replaces non-inherited entries */
+      const replace = stack ? (options?.replace ?? false) : options?.replace;
+
       navigate(getLocationPath(location), {
         ...options,
+        replace,
         state: {
           ...inheritedState,
           ...options?.state,
@@ -75,7 +87,7 @@ const useLocationState = <T>(
         },
       });
     },
-    [key, persist, indexKey, inherit, navigate],
+    [key, persist, indexKey, inherit, stack, navigate],
   );
 
   /* Clears the value: back to the stamped index, back once, or home when nothing is behind */

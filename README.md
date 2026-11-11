@@ -78,7 +78,7 @@ setValue(undefined, {}, index); // goes back to before a stamped index
 | --- | --- | --- |
 | `key` | `string` | The key in `location.state` |
 | `defaultValue` | `T` | The value when the key isn't set |
-| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; indexKey?: string; inherit?: boolean }` |
+| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; indexKey?: string; inherit?: boolean; stack?: boolean }` |
 
 **Returns:** `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 
@@ -98,8 +98,12 @@ Values survive a reload by default, since they live in `history.state`. With `{ 
 
 Each push copies the current state, so a value is carried into entries pushed by other keys. With `{ inherit: false }`, the value stays on the entry that set it:
 
-- a push by another key replaces that entry instead of stacking on it;
+- a push by another key replaces that entry instead of stacking on it, unless that key is `stack: true`;
 - closing the value is ignored when the entry it was read from is no longer the current one, so a close racing a navigation can't go back from the new entry.
+
+#### `stack`
+
+With `{ stack: true }`, setting the value pushes on top of the current entry and keeps its `inherit: false` values, instead of replacing it. Back closes the stacked value and returns to the entry below, with its values still set. Layers opened without `stack` still replace the whole entry, stacked values included.
 
 ### `useLocationToggle`
 
@@ -116,7 +120,7 @@ setOpen(false); // goes back, to before the indexKey stamp when there is one
 | --- | --- | --- |
 | `key` | `string` | The key in `location.state` |
 | `indexKey` | `string?` | The stamp to close back to (see [`useLocationIndexUpdater`](#uselocationindexupdater)) |
-| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; inherit?: boolean }` |
+| `options` | `UseLocationStateOptions?` | `{ persist?: boolean; inherit?: boolean; stack?: boolean }` |
 
 **Returns:** `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 
@@ -309,6 +313,18 @@ const [isOpen, setOpen] = usePopupToggle();
 <Select.Root open={isOpen} onOpenChange={(open) => setOpen(open)} />;
 ```
 
+### A layer opened on top of a popup
+
+An on-screen keyboard (or a submenu) opens over a popup and keeps it: back hides the keyboard, back again closes the popup. A dialog opened from the popup still takes its place.
+
+```tsx
+const [isKeyboardOpen, setKeyboardOpen] = useLocationToggle(
+  "keyboard",
+  undefined,
+  { persist: false, inherit: false, stack: true },
+);
+```
+
 ### Defaults for a group of layers
 
 ```tsx
@@ -385,7 +401,7 @@ These React Router exports are passed through unchanged:
 
 - **`PWARouterProps`**: `BrowserRouterProps`
 - **`PWARoutingContextValue`**: `{ resolvedLocation: Location; isCorrecting: boolean }`
-- **`UseLocationStateOptions`**: `{ persist?: boolean; indexKey?: string; inherit?: boolean }`
+- **`UseLocationStateOptions`**: `{ persist?: boolean; indexKey?: string; inherit?: boolean; stack?: boolean }`
 - **`UseLocationStateReturn<T>`**: `[T, (value?: T, options?: NavigateOptions, index?: number) => void]`
 - **`UseLocationToggleReturn`**: `[boolean, (status: boolean, options?: NavigateOptions) => void]`
 
